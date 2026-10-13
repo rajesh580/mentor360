@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { query } from '../../config/db.js';
+import { query, getClient } from '../../config/db.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { tenantMiddleware, requireRoles } from '../../middlewares/tenant.middleware.js';
 import { logAudit } from '../../middlewares/audit.middleware.js';
@@ -62,6 +62,139 @@ router.get('/', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to retrieve students list.' });
   }
 });
+
+// POST /api/students - Register a new student record with guardian details
+router.post(
+  '/',
+  requireRoles(['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'HOD', 'PROCTOR_COORDINATOR']),
+  logAudit('REGISTER_STUDENT', 'STUDENT'),
+  async (req: Request, res: Response) => {
+    const client = await getClient();
+    try {
+      const {
+        usn,
+        fullName,
+        email,
+        phone,
+        departmentId,
+        programmeId,
+        batchId,
+        currentSemester,
+        currentSection,
+        guardianName,
+        guardianRelation,
+        guardianPhone,
+        guardianEmail,
+      } = req.body;
+      const institutionId = req.tenantId;
+
+      if (!usn || !fullName || !departmentId) {
+        return res.status(400).json({ error: 'USN, full name, and department are required.' });
+      }
+
+      await client.query('BEGIN');
+
+      // 1. If programmeId not provided, select first programme for the department
+      let progId = programmeId;
+      if (!progId) {
+        const progRes = await client.query(
+          `SELECT id FROM programmes WHERE department_id = $1 AND institution_id = $2 LIMIT 1`,
+          [departmentId, institutionId]
+        );
+        if (progRes.rows.length > 0) progId = progRes.rows[0].id;
+      }
+
+      // 2. Insert Student
+      const studentRes = await client.query(
+        `INSERT INTO students (
+           institution_id, department_id, programme_id, batch_id, usn, full_name, email, phone, current_semester, current_section, status
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'ACTIVE')
+         RETURNING *`,
+        [
+          institutionId,
+          departmentId,
+          progId,
+          batchId || null,
+          usn.trim().toUpperCase(),
+          fullName.trim(),
+          email?.trim() || `${usn.trim().toLowerCase()}@svit.edu.in`,
+          phone?.trim() || null,
+          Number(currentSemester) || 1,
+          currentSection?.trim().toUpperCase() || 'A',
+        ]
+      );
+      const student = studentRes.rows[0];
+
+      // 3. Insert guardian if provided
+      if (guardianName && guardianPhone) {
+        const guardianRes = await client.query(
+          `INSERT INTO guardians (institution_id, name, relation, phone, email)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id`,
+          [
+            institutionId,
+            guardianName.trim(),
+            guardianRelation || 'Father',
+            guardianPhone.trim(),
+            guardianEmail?.trim() || null,
+          ]
+        );
+        const guardianId = guardianRes.rows[0].id;
+
+        await client.query(
+          `INSERT INTO student_guardians (student_id, guardian_id, is_primary, verified)
+           VALUES ($1, $2, true, true)`,
+          [student.id, guardianId]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.status(201).json({ message: 'Student registered successfully.', student });
+    } catch (err: any) {
+      await client.query('ROLLBACK');
+      if (err.code === '23505') {
+        return res.status(409).json({ error: 'A student with this USN already exists.' });
+      }
+      console.error('Error creating student:', err);
+      res.status(500).json({ error: 'Failed to create student record.' });
+    } finally {
+      client.release();
+    }
+  }
+);
+
+// PATCH /api/students/:id/status - Update student status (ACTIVE / GRADUATED / TRANSFERRED / DROPPED)
+router.patch(
+  '/:id/status',
+  requireRoles(['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'HOD']),
+  logAudit('UPDATE_STUDENT_STATUS', 'STUDENT'),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const institutionId = req.tenantId;
+
+      if (!['ACTIVE', 'GRADUATED', 'TRANSFERRED', 'DROPPED'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status value.' });
+      }
+
+      const result = await query(
+        `UPDATE students SET status = $1, updated_at = NOW() WHERE id = $2 AND institution_id = $3 RETURNING id, usn, full_name, status`,
+        [status, id, institutionId]
+      );
+
+      if (!result.rows.length) {
+        return res.status(404).json({ error: 'Student not found.' });
+      }
+
+      res.json({ message: `Student status updated to ${status}`, student: result.rows[0] });
+    } catch (err) {
+      console.error('Failed to update student status:', err);
+      res.status(500).json({ error: 'Failed to update student status.' });
+    }
+  }
+);
 
 // GET /api/students/:id/proctor-file - Complete 360-degree Digital Student Success Record
 router.get('/:id/proctor-file', async (req: Request, res: Response) => {

@@ -27,28 +27,54 @@ import {
   Upload,
   LockKeyhole,
   UserPlus,
+  Layers,
+  Send,
+  BarChart3,
+  Settings,
+  ShieldAlert,
+  Download,
+  UserX,
+  KeyRound,
+  Activity,
+  PlusCircle,
+  Filter,
+  MessageSquare,
 } from 'lucide-react';
 
 // API base URL configuration: uses Vite proxy in dev (/api) or custom VITE_API_URL
 const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const USER_ROLE_OPTIONS = [
-  ['UNIVERSITY_ADMIN', 'University administrator'],
-  ['INSTITUTION_ADMIN', 'Institution administrator'],
+  ['UNIVERSITY_ADMIN', 'University Administrator'],
+  ['INSTITUTION_ADMIN', 'Institution Administrator'],
   ['PRINCIPAL', 'Principal / Director'],
   ['DEAN', 'Dean Academics'],
-  ['HOD', 'Head of department'],
-  ['PROCTOR_COORDINATOR', 'Proctor coordinator'],
+  ['HOD', 'Head of Department (HOD)'],
+  ['PROCTOR_COORDINATOR', 'Proctor Coordinator'],
   ['PROCTOR', 'Faculty / Proctor / Mentor'],
-  ['COUNSELLOR', 'Counsellor'],
+  ['COUNSELLOR', 'Student Counsellor'],
   ['STUDENT', 'Student'],
   ['PARENT', 'Parent / Guardian'],
-  ['PLACEMENT_OFFICER', 'Placement officer'],
-  ['IQAC_ADMIN', 'IQAC administrator'],
-  ['SUPER_ADMIN', 'Super administrator'],
+  ['PLACEMENT_OFFICER', 'Placement Officer'],
+  ['IQAC_ADMIN', 'IQAC / Accreditation Admin'],
+  ['SUPER_ADMIN', 'Super Administrator'],
 ];
 
+type ActiveTabType =
+  | 'dashboard'
+  | 'students'
+  | 'proctors'
+  | 'meetings'
+  | 'interventions'
+  | 'counselling'
+  | 'import'
+  | 'users'
+  | 'institution'
+  | 'communication'
+  | 'analytics';
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'proctors' | 'meetings' | 'interventions' | 'counselling' | 'import' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTabType>('dashboard');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +83,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [signingIn, setSigningIn] = useState(false);
 
-  // Data states
+  // Core Data states
   const [stats, setStats] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [proctors, setProctors] = useState<any[]>([]);
@@ -70,12 +96,42 @@ export default function App() {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
+  const [studentDeptFilter, setStudentDeptFilter] = useState('');
+  const [studentSemFilter, setStudentSemFilter] = useState('');
+
+  // Modals state
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [reassignData, setReassignData] = useState({ studentId: '', newFacultyId: '', reason: '' });
+
+  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
+  const [newStudentData, setNewStudentData] = useState({
+    usn: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    departmentId: '',
+    currentSemester: 1,
+    currentSection: 'A',
+    guardianName: '',
+    guardianRelation: 'Father',
+    guardianPhone: '',
+  });
+
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastData, setBroadcastData] = useState({
+    targetGroup: 'ATTENDANCE_SHORTAGE',
+    departmentId: '',
+    semester: '',
+    channel: 'SMS',
+    subject: 'Urgent: Student Attendance Shortage Notification',
+    message: 'Dear Parent, this is an official notification from the Proctoring Office regarding your ward\'s attendance shortage below 75%. Please contact the proctor immediately.',
+  });
 
   // Import preview state
   const [importResult, setImportResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+
+  // User Management state
   const [managedUsers, setManagedUsers] = useState<any[]>([]);
   const [managedInstitutions, setManagedInstitutions] = useState<any[]>([]);
   const [managedInstitutionId, setManagedInstitutionId] = useState('');
@@ -84,9 +140,54 @@ export default function App() {
   const [userSaving, setUserSaving] = useState(false);
   const [userError, setUserError] = useState('');
   const [userNotice, setUserNotice] = useState('');
-  const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', phone: '', roleCode: 'PROCTOR' });
+  const [userFilterRole, setUserFilterRole] = useState('');
+  const [userFilterStatus, setUserFilterStatus] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [usersSubTab, setUsersSubTab] = useState<'accounts' | 'audit'>('accounts');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [newUser, setNewUser] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    phone: '',
+    roleCode: 'PROCTOR',
+    departmentId: '',
+    designation: 'Assistant Professor',
+  });
 
-  // Restore the user's own session; never sign in with a seeded account automatically.
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetTargetUser, setResetTargetUser] = useState<any>(null);
+  const [newTempPassword, setNewTempPassword] = useState('');
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+
+  // Institutional Structure state
+  const [structure, setStructure] = useState<any>(null);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [newDeptModalOpen, setNewDeptModalOpen] = useState(false);
+  const [newDeptData, setNewDeptData] = useState({ code: '', name: '' });
+  const [newAyModalOpen, setNewAyModalOpen] = useState(false);
+  const [newAyData, setNewAyData] = useState({ name: '', startDate: '', endDate: '', isCurrent: true });
+  const [newProgModalOpen, setNewProgModalOpen] = useState(false);
+  const [newProgData, setNewProgData] = useState({ departmentId: '', code: '', name: '', degreeLevel: 'UG', totalSemesters: 8 });
+  const [newBatchModalOpen, setNewBatchModalOpen] = useState(false);
+  const [newBatchData, setNewBatchData] = useState({ programmeId: '', name: '', admissionYear: new Date().getFullYear(), graduationYear: new Date().getFullYear() + 4 });
+
+  // Institutional Communication Logs state
+  const [parentLogs, setParentLogs] = useState<any[]>([]);
+  const [parentLogsLoading, setParentLogsLoading] = useState(false);
+  const [commChannelFilter, setCommChannelFilter] = useState('');
+  const [commSearchTerm, setCommSearchTerm] = useState('');
+
+  // Analytics & Accreditation State
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const userRole = currentUser?.roleCode || currentUser?.role_code;
+  const isHighAdmin = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL'].includes(userRole);
+  const isAdminRole = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'HOD', 'PROCTOR_COORDINATOR'].includes(userRole);
+
+  // Restore existing session
   useEffect(() => {
     const savedToken = localStorage.getItem('mentor360_token');
     if (!savedToken) {
@@ -141,6 +242,10 @@ export default function App() {
     setMeetings([]);
     setInterventions([]);
     setCounsellingSessions([]);
+    setManagedUsers([]);
+    setStructure(null);
+    setParentLogs([]);
+    setAnalyticsData([]);
     setActiveTab('dashboard');
   };
 
@@ -154,7 +259,9 @@ export default function App() {
         fetch(`${API_BASE}/api/interventions`, { headers }),
         fetch(`${API_BASE}/api/meetings`, { headers }),
       ];
-      if (['COUNSELLOR', 'SUPER_ADMIN'].includes(roleCode)) requests.push(fetch(`${API_BASE}/api/counselling/sessions`, { headers }));
+      if (['COUNSELLOR', 'SUPER_ADMIN'].includes(roleCode)) {
+        requests.push(fetch(`${API_BASE}/api/counselling/sessions`, { headers }));
+      }
       const [statsRes, studentsRes, proctorsRes, issuesRes, meetingsRes, counsellingRes] = await Promise.all(requests);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -163,11 +270,19 @@ export default function App() {
       if (issuesRes.ok) setInterventions(await issuesRes.json());
       if (meetingsRes.ok) setMeetings(await meetingsRes.json());
       if (counsellingRes?.ok) setCounsellingSessions(await counsellingRes.json());
+
+      // Fetch institutional structure in background for filters and modals
+      fetch(`${API_BASE}/api/institution/structure`, { headers })
+        .then((r) => {
+          if (r.ok) r.json().then(setStructure);
+        })
+        .catch(() => {});
     } catch (err) {
       console.error('Error fetching data:', err);
     }
   };
 
+  // Load Users tab data
   useEffect(() => {
     if (activeTab !== 'users' || !token) return;
     const loadUsers = async () => {
@@ -175,7 +290,7 @@ export default function App() {
       setUserError('');
       try {
         const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-        if ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN') {
+        if ((currentUser?.roleCode || currentUser?.role_code) === 'SUPER_ADMIN') {
           if (!managedInstitutions.length) {
             const institutionsRes = await fetch(`${API_BASE}/api/users/institutions`, { headers });
             const institutions = await institutionsRes.json();
@@ -187,19 +302,106 @@ export default function App() {
           if (!managedInstitutionId) return;
           headers['x-institution-id'] = managedInstitutionId;
         }
-        const response = await fetch(`${API_BASE}/api/users`, { headers });
+
+        const queryParams = new URLSearchParams();
+        if (userFilterRole) queryParams.set('role', userFilterRole);
+        if (userFilterStatus) queryParams.set('status', userFilterStatus);
+        if (userSearchTerm) queryParams.set('search', userSearchTerm);
+
+        const response = await fetch(`${API_BASE}/api/users?${queryParams.toString()}`, { headers });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load users.');
         setManagedUsers(data);
       } catch (error: any) {
-        setUserError(error.message || 'Could not connect to the user service.');
+        setUserError(error.message || 'Could not connect to user service.');
       } finally {
         setUsersLoading(false);
       }
     };
     void loadUsers();
-  }, [activeTab, token, currentUser, managedInstitutionId, managedInstitutions.length, usersRefresh]);
+  }, [activeTab, token, currentUser, managedInstitutionId, managedInstitutions.length, usersRefresh, userFilterRole, userFilterStatus, userSearchTerm]);
 
+  // Load Audit logs
+  useEffect(() => {
+    if (activeTab !== 'users' || usersSubTab !== 'audit' || !token) return;
+    const loadAudit = async () => {
+      setAuditLoading(true);
+      try {
+        const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+        if (managedInstitutionId) headers['x-institution-id'] = managedInstitutionId;
+        const res = await fetch(`${API_BASE}/api/users/audit-logs`, { headers });
+        if (res.ok) setAuditLogs(await res.json());
+      } catch (err) {
+        console.error('Failed to load audit logs:', err);
+      } finally {
+        setAuditLoading(false);
+      }
+    };
+    void loadAudit();
+  }, [activeTab, usersSubTab, token, managedInstitutionId, usersRefresh]);
+
+  // Load Structure tab data
+  useEffect(() => {
+    if (activeTab !== 'institution' || !token) return;
+    const loadStructure = async () => {
+      setStructureLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/institution/structure`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setStructure(await res.json());
+      } catch (err) {
+        console.error('Failed to load institution structure:', err);
+      } finally {
+        setStructureLoading(false);
+      }
+    };
+    void loadStructure();
+  }, [activeTab, token]);
+
+  // Load Parent Communication logs
+  useEffect(() => {
+    if (activeTab !== 'communication' || !token) return;
+    const loadParentLogs = async () => {
+      setParentLogsLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (commChannelFilter) params.set('channel', commChannelFilter);
+        if (commSearchTerm) params.set('search', commSearchTerm);
+
+        const res = await fetch(`${API_BASE}/api/communication/all-logs?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setParentLogs(await res.json());
+      } catch (err) {
+        console.error('Failed to load parent logs:', err);
+      } finally {
+        setParentLogsLoading(false);
+      }
+    };
+    void loadParentLogs();
+  }, [activeTab, token, commChannelFilter, commSearchTerm]);
+
+  // Load Analytics tab data
+  useEffect(() => {
+    if ((activeTab !== 'analytics' && activeTab !== 'dashboard') || !token) return;
+    const loadAnalytics = async () => {
+      setAnalyticsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/reports/institutional-analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setAnalyticsData(await res.json());
+      } catch (err) {
+        console.error('Failed to load institutional analytics:', err);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+    void loadAnalytics();
+  }, [activeTab, token]);
+
+  // User Actions
   const handleCreateUser = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!token) return;
@@ -208,21 +410,293 @@ export default function App() {
     setUserNotice('');
     try {
       const headers: Record<string, string> = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-      if ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN') headers['x-institution-id'] = managedInstitutionId;
+      if ((currentUser?.roleCode || currentUser?.role_code) === 'SUPER_ADMIN') headers['x-institution-id'] = managedInstitutionId;
       const response = await fetch(`${API_BASE}/api/users`, {
         method: 'POST',
         headers,
         body: JSON.stringify(newUser),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not create this account.');
-      setNewUser({ fullName: '', email: '', password: '', phone: '', roleCode: 'PROCTOR' });
-      setUserNotice(`Account created for ${data.user.full_name}. Share the temporary password securely.`);
-      setUsersRefresh((value) => value + 1);
+      if (!response.ok) throw new Error(data.error || 'Could not create account.');
+      setNewUser({
+        fullName: '',
+        email: '',
+        password: '',
+        phone: '',
+        roleCode: 'PROCTOR',
+        departmentId: '',
+        designation: 'Assistant Professor',
+      });
+      setUserNotice(`Account created successfully for ${data.user.full_name}. Temporary password set.`);
+      setUsersRefresh((v) => v + 1);
+      fetchData(token);
     } catch (error: any) {
-      setUserError(error.message || 'Could not connect to the user service.');
+      setUserError(error.message || 'Could not connect to user service.');
     } finally {
       setUserSaving(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
+    if (!token) return;
+    const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setUsersRefresh((v) => v + 1);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update user status.');
+      }
+    } catch (err) {
+      alert('Error updating user status.');
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !resetTargetUser || !newTempPassword) return;
+    setResetSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${resetTargetUser.id}/reset-password`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: newTempPassword }),
+      });
+      if (res.ok) {
+        alert(`Password for ${resetTargetUser.full_name} has been reset successfully!`);
+        setResetPasswordModalOpen(false);
+        setResetTargetUser(null);
+        setNewTempPassword('');
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to reset password.');
+      }
+    } catch (err) {
+      alert('Error resetting password.');
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
+
+  // Student Actions
+  const handleRegisterStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/students`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStudentData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Student ${data.student.full_name} (${data.student.usn}) registered successfully!`);
+        setAddStudentModalOpen(false);
+        setNewStudentData({
+          usn: '',
+          fullName: '',
+          email: '',
+          phone: '',
+          departmentId: '',
+          currentSemester: 1,
+          currentSection: 'A',
+          guardianName: '',
+          guardianRelation: 'Father',
+          guardianPhone: '',
+        });
+        fetchData(token);
+      } else {
+        alert(data.error || 'Failed to register student.');
+      }
+    } catch (err) {
+      alert('Error registering student.');
+    }
+  };
+
+  const handleToggleStudentStatus = async (studentId: string, currentStatus: string) => {
+    if (!token) return;
+    const newStatus = currentStatus === 'ACTIVE' ? 'GRADUATED' : 'ACTIVE';
+    try {
+      const res = await fetch(`${API_BASE}/api/students/${studentId}/status`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        fetchData(token);
+      } else {
+        alert('Failed to update student status.');
+      }
+    } catch (err) {
+      alert('Error updating student status.');
+    }
+  };
+
+  // Communication Actions
+  const handleBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/communication/broadcast`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(broadcastData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Broadcast alert dispatched successfully!');
+        setBroadcastModalOpen(false);
+        if (activeTab === 'communication') {
+          const params = new URLSearchParams();
+          if (commChannelFilter) params.set('channel', commChannelFilter);
+          fetch(`${API_BASE}/api/communication/all-logs?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => {
+            if (r.ok) r.json().then(setParentLogs);
+          });
+        }
+      } else {
+        alert(data.error || 'Failed to dispatch broadcast notice.');
+      }
+    } catch (err) {
+      alert('Error dispatching broadcast.');
+    }
+  };
+
+  // Institutional Structure Actions
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/institution/departments`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDeptData),
+      });
+      if (res.ok) {
+        alert('Department created successfully!');
+        setNewDeptModalOpen(false);
+        setNewDeptData({ code: '', name: '' });
+        fetch(`${API_BASE}/api/institution/structure`, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => {
+            if (r.ok) r.json().then(setStructure);
+          });
+      }
+    } catch (err) {
+      alert('Failed to create department.');
+    }
+  };
+
+  const handleCreateAcademicYear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/institution/academic-years`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAyData),
+      });
+      if (res.ok) {
+        alert('Academic Year recorded!');
+        setNewAyModalOpen(false);
+        setNewAyData({ name: '', startDate: '', endDate: '', isCurrent: true });
+        fetch(`${API_BASE}/api/institution/structure`, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => {
+            if (r.ok) r.json().then(setStructure);
+          });
+      }
+    } catch (err) {
+      alert('Failed to create academic year.');
+    }
+  };
+
+  const handleCreateProgramme = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/institution/programmes`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProgData),
+      });
+      if (res.ok) {
+        alert('Programme created successfully!');
+        setNewProgModalOpen(false);
+        setNewProgData({ departmentId: '', code: '', name: '', degreeLevel: 'UG', totalSemesters: 8 });
+        fetch(`${API_BASE}/api/institution/structure`, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => {
+            if (r.ok) r.json().then(setStructure);
+          });
+      }
+    } catch (err) {
+      alert('Failed to create programme.');
+    }
+  };
+
+  const handleCreateBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/institution/batches`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBatchData),
+      });
+      if (res.ok) {
+        alert('Batch created successfully!');
+        setNewBatchModalOpen(false);
+        setNewBatchData({ programmeId: '', name: '', admissionYear: new Date().getFullYear(), graduationYear: new Date().getFullYear() + 4 });
+        fetch(`${API_BASE}/api/institution/structure`, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => {
+            if (r.ok) r.json().then(setStructure);
+          });
+      }
+    } catch (err) {
+      alert('Failed to create batch.');
+    }
+  };
+
+  // Export Accreditation CSV Helper
+  const handleExportAccreditation = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/export-accreditation`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data || !data.length) {
+        alert('No accreditation records available for export.');
+        return;
+      }
+      const headers = ['USN', 'Student Name', 'Department', 'Semester', 'Section', 'Assigned Mentor', 'Designation', 'Allocation Date', 'Attendance Shortage (<75%)', 'Active Concerns', 'Meetings Attended'];
+      const rows = data.map((d: any) => [
+        `"${d.usn}"`,
+        `"${d.student_name}"`,
+        `"${d.department}"`,
+        d.current_semester,
+        `"${d.current_section}"`,
+        `"${d.mentor_name || 'Unassigned'}"`,
+        `"${d.mentor_designation || '-'}"`,
+        `"${d.allocated_date || '-'}"`,
+        d.has_attendance_shortage ? 'YES (<75%)' : 'NO',
+        d.active_concerns,
+        d.mentoring_meetings_attended,
+      ]);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `Mentor360_Accreditation_Proctoring_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      alert('Failed to export accreditation data.');
     }
   };
 
@@ -287,104 +761,147 @@ export default function App() {
     }
   };
 
-  const filteredStudents = students.filter(
-    (s) =>
+  const filteredStudents = students.filter((s) => {
+    const matchesSearch =
       s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.usn?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      s.usn?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDept = !studentDeptFilter || s.department_code === studentDeptFilter;
+    const matchesSem = !studentSemFilter || String(s.current_semester) === studentSemFilter;
+    return matchesSearch && matchesDept && matchesSem;
+  });
 
-  if (loading) return <div className="min-h-screen grid place-items-center bg-slate-50 text-sm text-slate-500">Restoring your session…</div>;
+  if (loading) {
+    return <div className="min-h-screen grid place-items-center bg-slate-50 text-sm text-slate-500">Restoring your session…</div>;
+  }
 
   if (!token || !currentUser) {
     return (
       <div className="min-h-screen w-full bg-slate-950 text-slate-900 flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-8 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-sky-600 text-xl font-bold text-white">M</div>
-            <div><h1 className="text-xl font-extrabold tracking-tight">Mentor360</h1><p className="text-sm text-slate-500">Student mentoring platform</p></div>
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-sky-600 text-xl font-bold text-white shadow-md">M</div>
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight">Mentor360</h1>
+              <p className="text-sm text-slate-500">Higher Education Mentoring & Proctoring</p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-          <p className="mt-1 text-sm text-slate-500">Sign in with your institution account.</p>
+          <h2 className="text-2xl font-bold text-slate-900">Institutional Sign In</h2>
+          <p className="mt-1 text-sm text-slate-500">Sign in with your role-authorized credentials.</p>
           <form onSubmit={handleLogin} className="mt-7 space-y-5">
             <div>
               <label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold text-slate-700">Email address</label>
-              <input id="login-email" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100" placeholder="you@institution.edu" />
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="username"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                placeholder="principal@svit.edu.in"
+              />
             </div>
             <div>
               <label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
-              <input id="login-password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100" placeholder="Enter your password" />
+              <input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                placeholder="Enter your password"
+              />
             </div>
             {authError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{authError}</p>}
-            <button disabled={signingIn} type="submit" className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60">
-              <LockKeyhole className="h-4 w-4" />{signingIn ? 'Signing in…' : 'Sign in'}
+            <button
+              disabled={signingIn}
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 shadow-sm"
+            >
+              <LockKeyhole className="h-4 w-4" />{signingIn ? 'Signing in…' : 'Sign in to Workspace'}
             </button>
           </form>
-          <p className="mt-6 text-center text-xs text-slate-400">Your access is secured by your institution account.</p>
+          <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">
+            <p className="font-semibold text-slate-700">Demo Institution Accounts:</p>
+            <p className="mt-1">Principal / Admin: <code className="text-sky-700">principal@svit.edu.in</code></p>
+            <p>HOD CSE: <code className="text-sky-700">hod.cse@svit.edu.in</code></p>
+            <p>Mentor: <code className="text-sky-700">mentor.ramesh@svit.edu.in</code></p>
+            <p>Password: <code className="text-slate-800">Password@123</code></p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      {/* Application header */}
-      <header className="bg-slate-900 text-white px-6 py-3 border-b border-slate-800 sticky top-0 z-40">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
+      {/* Top Application Header */}
+      <header className="bg-slate-900 text-white px-6 py-3 border-b border-slate-800 sticky top-0 z-40 shadow-sm">
         <div className="w-full flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-extrabold text-lg text-white shadow-md">
               M
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-xl tracking-tight text-white">Mentor360</span>
-                <span className="text-xs bg-sky-500/20 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-400/30">
-                  Workspace
+                <span className="text-[11px] bg-sky-500/20 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-400/30">
+                  {currentUser.roleCode || currentUser.role_code}
                 </span>
               </div>
               <p className="text-xs text-slate-400 flex items-center gap-1">
-                <Building2 className="w-3 h-3" /> {currentUser.institutionName || 'Institution workspace'}
+                <Building2 className="w-3 h-3 text-slate-400" /> {currentUser.institutionName || 'Sai Vidya Institute of Technology'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs font-semibold text-white">{currentUser.fullName || currentUser.full_name}</p>
-              <p className="text-[11px] text-sky-400 font-medium">{currentUser.roleCode || currentUser.role_code}</p>
+              <p className="text-[11px] text-sky-400 font-medium">{currentUser.email}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-sky-700 text-sky-100 flex items-center justify-center font-bold text-xs">
+            <div className="w-9 h-9 rounded-full bg-sky-700 text-sky-100 flex items-center justify-center font-bold text-sm shadow">
               {(currentUser.fullName || currentUser.full_name || currentUser.email || 'U')[0]}
             </div>
-            <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800" aria-label="Sign out">
-              <LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 hover:text-white"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Navigation Tabs */}
-      <div className="bg-white border-b border-slate-200 shadow-sm sticky top-[61px] z-30">
+      <div className="bg-white border-b border-slate-200 shadow-xs sticky top-[57px] z-30">
         <div className="w-full px-6 flex space-x-1 overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Overview', icon: TrendingUp },
             { id: 'students', label: 'Students & Proctor Book', icon: GraduationCap },
-            { id: 'proctors', label: 'Proctor Allocations', icon: Users },
+            { id: 'proctors', label: 'Proctor Allocations & Workload', icon: Users },
             { id: 'meetings', label: 'Mentoring Meetings', icon: Calendar },
             { id: 'interventions', label: 'Concerns & Interventions', icon: AlertTriangle },
-            { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) },
-            { id: 'import', label: 'Bulk Marks Import', icon: FileSpreadsheet },
-            { id: 'users', label: 'User Management', icon: UserPlus, restricted: !['INSTITUTION_ADMIN', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) },
+            { id: 'communication', label: 'Parent Communication', icon: MessageSquare, restricted: !isAdminRole && userRole !== 'PROCTOR' },
+            { id: 'institution', label: 'Academic Structure & Setup', icon: Building2, restricted: !isAdminRole },
+            { id: 'users', label: 'Users & RBAC Access', icon: UserPlus, restricted: !isHighAdmin },
+            { id: 'analytics', label: 'Accreditation & Analytics', icon: BarChart3, restricted: !isAdminRole && userRole !== 'IQAC_ADMIN' },
+            { id: 'import', label: 'Bulk Marks Import', icon: FileSpreadsheet, restricted: !isAdminRole },
+            { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(userRole) },
           ].map((tab) => {
             const Icon = tab.icon;
             if (tab.restricted) return null;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 py-3 px-4 text-sm font-semibold border-b-2 transition whitespace-nowrap ${
+                onClick={() => setActiveTab(tab.id as ActiveTabType)}
+                className={`flex items-center gap-2 py-3 px-3.5 text-xs sm:text-sm font-semibold border-b-2 transition whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-sky-600 text-sky-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    ? 'border-sky-600 text-sky-600 bg-sky-50/20'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -395,160 +912,947 @@ export default function App() {
         </div>
       </div>
 
-      {/* Content Area */}
-      <main className="w-full p-0 flex-1">
-        {activeTab === 'users' && ['INSTITUTION_ADMIN', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) && (
-          <section className="space-y-6 p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Main Workspace Body */}
+      <main className="w-full p-6 flex-1 max-w-7xl mx-auto space-y-6">
+
+        {/* ========================================================================= */}
+        {/* TAB: DASHBOARD OVERVIEW */}
+        {/* ========================================================================= */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">User management</h1>
-                <p className="mt-1 text-sm text-slate-500">Create sign-in accounts for your institution.</p>
+                <h1 className="text-2xl font-bold text-slate-900">Institutional Proctoring & Mentoring Dashboard</h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                  Real-time telemetry across academic monitoring, attendance shortages, proctor ratios, and accreditation metrics.
+                </p>
               </div>
-              {(currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' && (
-                <select aria-label="Institution" value={managedInstitutionId} onChange={(event) => setManagedInstitutionId(event.target.value)} className="min-w-64 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                  <option value="">Select an institution</option>
-                  {managedInstitutions.map((institution) => <option key={institution.id} value={institution.id}>{institution.name} ({institution.code})</option>)}
-                </select>
+
+              {isAdminRole && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setAddStudentModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 shadow-xs"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" /> Register Student
+                  </button>
+                  <button
+                    onClick={() => setBroadcastModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 shadow-xs"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Broadcast Parent Notice
+                  </button>
+                  <button
+                    onClick={handleExportAccreditation}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export NBA/NAAC CSV
+                  </button>
+                </div>
               )}
+            </div>
+
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+              <button
+                onClick={() => setActiveTab('students')}
+                className="text-left bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs hover:border-sky-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-sky-600">Total Enrolled</span>
+                  <GraduationCap className="w-4 h-4 text-sky-500" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 mt-2">{stats?.totalStudents ?? 0}</p>
+                <span className="text-[11px] text-slate-500">Active students</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('proctors')}
+                className="text-left bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs hover:border-indigo-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-indigo-600">Mentors</span>
+                  <Users className="w-4 h-4 text-indigo-500" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 mt-2">{stats?.totalFaculty ?? 0}</p>
+                <span className="text-[11px] text-slate-500">Faculty proctors</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('proctors')}
+                className="text-left bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs hover:border-emerald-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-emerald-600">Coverage</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                </div>
+                <p className="text-2xl font-black text-emerald-700 mt-2">{stats?.coveragePercent ?? 0}%</p>
+                <span className="text-[11px] text-slate-500">Students with mentors</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('students')}
+                className="text-left bg-white p-4 rounded-xl border border-rose-200 bg-rose-50/20 shadow-xs hover:border-rose-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-rose-600">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-rose-700">Attendance &lt; 75%</span>
+                  <AlertTriangle className="w-4 h-4 text-rose-500" />
+                </div>
+                <p className="text-2xl font-black text-rose-700 mt-2">{stats?.attendanceShortages ?? 0}</p>
+                <span className="text-[11px] text-rose-600 font-medium">Critical shortage</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('interventions')}
+                className="text-left bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/20 shadow-xs hover:border-amber-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-amber-600">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-amber-700">Open Concerns</span>
+                  <Clock className="w-4 h-4 text-amber-500" />
+                </div>
+                <p className="text-2xl font-black text-amber-700 mt-2">{stats?.openConcerns ?? 0}</p>
+                <span className="text-[11px] text-amber-700 font-medium">Active follow-ups</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('meetings')}
+                className="text-left bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs hover:border-emerald-400 hover:shadow transition group"
+              >
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-emerald-600">Completed Sessions</span>
+                  <Calendar className="w-4 h-4 text-emerald-500" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 mt-2">{stats?.completedMeetings ?? 0}</p>
+                <span className="text-[11px] text-slate-500">Recorded meetings</span>
+              </button>
+            </div>
+
+            {/* Department Performance Snapshot & Proctor Workload */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Department Mentoring & Academic Snapshot</h2>
+                    <p className="text-xs text-slate-500">Cross-departmental comparison for accreditation evidence</p>
+                  </div>
+                  {isAdminRole && (
+                    <button onClick={() => setActiveTab('analytics')} className="text-xs font-semibold text-sky-600 hover:underline">
+                      Detailed telemetry &rarr;
+                    </button>
+                  )}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                      <tr>
+                        <th className="py-2.5 px-3">Dept</th>
+                        <th className="py-2.5 px-3">Enrolled Students</th>
+                        <th className="py-2.5 px-3">Faculty Mentors</th>
+                        <th className="py-2.5 px-3">Attendance Shortages</th>
+                        <th className="py-2.5 px-3">Open Concerns</th>
+                        <th className="py-2.5 px-3">Avg SGPA</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {analyticsData?.departmentBreakdown?.map((d: any) => (
+                        <tr key={d.id} className="hover:bg-slate-50 transition">
+                          <td className="py-3 px-3 font-bold text-sky-700">{d.code} - {d.name}</td>
+                          <td className="py-3 px-3 font-semibold text-slate-800">{d.student_count}</td>
+                          <td className="py-3 px-3 text-slate-600">{d.faculty_count}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded font-bold ${
+                              Number(d.shortage_count) > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {d.shortage_count}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-amber-700 font-semibold">{d.open_issues_count}</td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">{d.avg_sgpa || 'N/A'}</td>
+                        </tr>
+                      ))}
+                      {(!analyticsData?.departmentBreakdown || analyticsData.departmentBreakdown.length === 0) && (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-slate-400">Loading department breakdown…</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Faculty Proctor Workload Balancer Widget */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-bold text-slate-900">Workload Balancer</h2>
+                  <button onClick={() => setActiveTab('proctors')} className="text-xs font-semibold text-sky-600 hover:underline">
+                    Manage &rarr;
+                  </button>
+                </div>
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {proctors.slice(0, 5).map((p) => {
+                    const ratio = p.max_mentees ? Math.round((p.active_mentees_count / p.max_mentees) * 100) : 0;
+                    return (
+                      <div key={p.faculty_id} className="border border-slate-100 p-3 rounded-lg bg-slate-50/70 text-xs">
+                        <div className="flex justify-between items-center font-bold">
+                          <span className="text-slate-800">{p.faculty_name}</span>
+                          <span className={`${ratio > 90 ? 'text-rose-600' : ratio > 70 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                            {p.active_mentees_count} / {p.max_mentees}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{p.designation} • Dept of {p.department_code}</p>
+                        <div className="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              ratio > 90 ? 'bg-rose-500' : ratio > 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(100, ratio)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {proctors.length === 0 && <p className="text-xs text-slate-400 text-center py-4">No proctors registered.</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Directory & Recent Alerts */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Recent Student Roster</h2>
+                  <p className="text-xs text-slate-500">Click any student to view their 360-degree digital proctor book</p>
+                </div>
+                <button onClick={() => setActiveTab('students')} className="text-xs font-semibold text-sky-600 hover:underline">
+                  View all ({students.length}) &rarr;
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                {students.slice(0, 4).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => viewProctorFile(s.id)}
+                    className="p-3 rounded-lg border border-slate-200 text-left hover:border-sky-400 hover:bg-sky-50/40 transition group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="font-mono text-xs font-bold text-sky-700">{s.usn}</span>
+                      <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-semibold">Sem {s.current_semester}</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 mt-1 truncate">{s.full_name}</p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">Mentor: {s.mentor_name || 'Unassigned'}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: ACADEMIC STRUCTURE & CONFIGURATION (MODULE 5.1) */}
+        {/* ========================================================================= */}
+        {activeTab === 'institution' && isAdminRole && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Academic Structure & Configuration</h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Manage Academic Years, Departments, Programmes, Batches, and Institutional Rules.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setNewAyModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 shadow-xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Add Academic Year
+                </button>
+                <button
+                  onClick={() => setNewDeptModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 shadow-xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Add Department
+                </button>
+                <button
+                  onClick={() => setNewProgModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 shadow-xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Add Programme
+                </button>
+                <button
+                  onClick={() => setNewBatchModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 shadow-xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Add Batch
+                </button>
+              </div>
+            </div>
+
+            {/* Institution Profile & Settings Card */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">{structure?.institution?.name || 'Institution Workspace'}</h2>
+                    <p className="text-xs text-slate-500">Code: <strong className="font-mono text-slate-700">{structure?.institution?.code}</strong> • Status: <span className="text-emerald-700 font-semibold">{structure?.institution?.status}</span></p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-xs">
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold block">Attendance Shortage Threshold</span>
+                  <span className="text-base font-bold text-rose-700">75%</span>
+                  <p className="text-[11px] text-slate-400 mt-1">Automatic alert triggered below this level</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold block">Target Proctor-to-Student Ratio</span>
+                  <span className="text-base font-bold text-sky-700">1 : 30</span>
+                  <p className="text-[11px] text-slate-400 mt-1">Institutional maximum mentor capacity</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold block">Affiliating University & Rules</span>
+                  <span className="text-base font-bold text-indigo-700">VTU Belagavi</span>
+                  <p className="text-[11px] text-slate-400 mt-1">IA Avg /50 & VTU Semester Exam Schema</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Two Column Layout: Academic Years & Departments */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Academic Years Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-sky-600" /> Academic Years
+                  </h3>
+                  <span className="text-xs text-slate-500">{structure?.academicYears?.length ?? 0} cycles</span>
+                </div>
+                <div className="divide-y divide-slate-100 text-xs">
+                  {structure?.academicYears?.map((ay: any) => (
+                    <div key={ay.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-slate-900 text-sm">{ay.name}</span>
+                        <p className="text-slate-500 text-[11px]">
+                          {new Date(ay.start_date).toLocaleDateString()} &mdash; {new Date(ay.end_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {ay.is_current ? (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200">
+                          CURRENT ACTIVE
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">Archived</span>
+                      )}
+                    </div>
+                  ))}
+                  {(!structure?.academicYears || structure.academicYears.length === 0) && (
+                    <p className="py-4 text-center text-slate-400">No academic years defined.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Departments Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-600" /> Departments
+                  </h3>
+                  <span className="text-xs text-slate-500">{structure?.departments?.length ?? 0} departments</span>
+                </div>
+                <div className="divide-y divide-slate-100 text-xs">
+                  {structure?.departments?.map((dept: any) => (
+                    <div key={dept.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <span className="font-mono font-bold text-sky-700 text-xs bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 mr-2">
+                          {dept.code}
+                        </span>
+                        <span className="font-semibold text-slate-800">{dept.name}</span>
+                      </div>
+                      <span className="text-slate-400 text-[11px]">Active</span>
+                    </div>
+                  ))}
+                  {(!structure?.departments || structure.departments.length === 0) && (
+                    <p className="py-4 text-center text-slate-400">No departments defined.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Programmes & Batches */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Programmes Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-sky-600" /> Programmes & Degrees
+                  </h3>
+                  <span className="text-xs text-slate-500">{structure?.programmes?.length ?? 0} programmes</span>
+                </div>
+                <div className="divide-y divide-slate-100 text-xs">
+                  {structure?.programmes?.map((prog: any) => (
+                    <div key={prog.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-slate-900">{prog.name}</span>
+                        <p className="text-slate-500 text-[11px]">Code: {prog.code} • Level: {prog.degree_level} • Semesters: {prog.total_semesters}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
+                        {prog.department_code || 'DEPT'}
+                      </span>
+                    </div>
+                  ))}
+                  {(!structure?.programmes || structure.programmes.length === 0) && (
+                    <p className="py-4 text-center text-slate-400">No programmes defined.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Batches Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-indigo-600" /> Academic Batches
+                  </h3>
+                  <span className="text-xs text-slate-500">{structure?.batches?.length ?? 0} batches</span>
+                </div>
+                <div className="divide-y divide-slate-100 text-xs">
+                  {structure?.batches?.map((b: any) => (
+                    <div key={b.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-slate-900 text-sm">{b.name}</span>
+                        <p className="text-slate-500 text-[11px]">{b.programme_name || 'Programme'} • {b.admission_year} - {b.graduation_year}</p>
+                      </div>
+                      <span className="text-sky-700 bg-sky-50 px-2 py-0.5 rounded font-bold text-[10px] border border-sky-200">
+                        Batch
+                      </span>
+                    </div>
+                  ))}
+                  {(!structure?.batches || structure.batches.length === 0) && (
+                    <p className="py-4 text-center text-slate-400">No batches defined.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: USERS & RBAC ACCESS MANAGEMENT (MODULE 5.2) */}
+        {/* ========================================================================= */}
+        {activeTab === 'users' && isHighAdmin && (
+          <section className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">User & RBAC Access Management</h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Manage accounts across all 13 system roles, status toggles, and system audit trail.
+                </p>
+              </div>
+
+              {/* Sub-tab Switcher: Accounts vs Audit Trail */}
+              <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-1 text-xs font-semibold">
+                <button
+                  onClick={() => setUsersSubTab('accounts')}
+                  className={`px-3 py-1.5 rounded-md transition ${usersSubTab === 'accounts' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  User Accounts ({managedUsers.length})
+                </button>
+                <button
+                  onClick={() => setUsersSubTab('audit')}
+                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${usersSubTab === 'audit' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  <Activity className="w-3.5 h-3.5" /> System Audit Trail
+                </button>
+              </div>
             </div>
 
             {userError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{userError}</p>}
             {userNotice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{userNotice}</p>}
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <form onSubmit={handleCreateUser} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-1">
-                <h2 className="text-base font-bold text-slate-900">Add a user</h2>
-                <div><label htmlFor="new-user-name" className="mb-1 block text-sm font-medium text-slate-700">Full name</label><input id="new-user-name" required minLength={2} maxLength={255} value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
-                <div><label htmlFor="new-user-email" className="mb-1 block text-sm font-medium text-slate-700">Email</label><input id="new-user-email" type="email" required autoComplete="off" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
-                <div><label htmlFor="new-user-phone" className="mb-1 block text-sm font-medium text-slate-700">Phone <span className="font-normal text-slate-400">(optional)</span></label><input id="new-user-phone" type="tel" value={newUser.phone} onChange={(event) => setNewUser({ ...newUser, phone: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
-                <div><label htmlFor="new-user-role" className="mb-1 block text-sm font-medium text-slate-700">Role</label><select id="new-user-role" value={newUser.roleCode} onChange={(event) => setNewUser({ ...newUser, roleCode: event.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">{USER_ROLE_OPTIONS.filter(([code]) => (currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' || !['SUPER_ADMIN', 'UNIVERSITY_ADMIN', 'INSTITUTION_ADMIN'].includes(code)).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></div>
-                <div><label htmlFor="new-user-password" className="mb-1 block text-sm font-medium text-slate-700">Temporary password</label><input id="new-user-password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /><p className="mt-1 text-xs text-slate-500">At least 12 characters. Share it with the user securely.</p></div>
-                <button disabled={userSaving || ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' && !managedInstitutionId)} type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"><UserPlus className="h-4 w-4" />{userSaving ? 'Creating account…' : 'Create account'}</button>
-              </form>
+            {/* VIEW 1: USER ACCOUNTS */}
+            {usersSubTab === 'accounts' && (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                {/* Add User Form */}
+                <form onSubmit={handleCreateUser} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs xl:col-span-1">
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-sky-600" /> Create User Account
+                  </h2>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
-                <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-bold text-slate-900">Institution accounts</h2><span className="text-xs text-slate-500">{managedUsers.length} users</span></div>
-                {usersLoading ? <p className="py-8 text-center text-sm text-slate-500">Loading accounts…</p> : managedUsers.length ? (
-                  <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><th className="pb-3 pr-4">Name</th><th className="pb-3 pr-4">Email</th><th className="pb-3 pr-4">Role</th><th className="pb-3">Status</th></tr></thead><tbody>{managedUsers.map((user) => <tr key={user.id} className="border-b border-slate-100 last:border-0"><td className="py-3 pr-4 font-medium text-slate-800">{user.full_name}</td><td className="py-3 pr-4 text-slate-600">{user.email}</td><td className="py-3 pr-4 text-slate-600">{user.role_code.replaceAll('_', ' ')}</td><td className="py-3"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{user.status}</span></td></tr>)}</tbody></table></div>
-                ) : <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">No accounts found for this institution.</p>}
+                  <div>
+                    <label htmlFor="new-user-name" className="mb-1 block text-xs font-semibold text-slate-700">Full Name</label>
+                    <input
+                      id="new-user-name"
+                      required
+                      minLength={2}
+                      value={newUser.fullName}
+                      onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                      placeholder="Dr. K. Shantala"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="new-user-email" className="mb-1 block text-xs font-semibold text-slate-700">Official Email</label>
+                    <input
+                      id="new-user-email"
+                      type="email"
+                      required
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      placeholder="faculty@svit.edu.in"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="new-user-phone" className="mb-1 block text-xs font-semibold text-slate-700">Mobile Phone</label>
+                    <input
+                      id="new-user-phone"
+                      type="tel"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="new-user-role" className="mb-1 block text-xs font-semibold text-slate-700">System Role (13 SRS Roles)</label>
+                    <select
+                      id="new-user-role"
+                      value={newUser.roleCode}
+                      onChange={(e) => setNewUser({ ...newUser, roleCode: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"
+                    >
+                      {USER_ROLE_OPTIONS.map(([code, label]) => (
+                        <option key={code} value={code}>{label} ({code})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {['PROCTOR', 'HOD', 'DEAN', 'PROCTOR_COORDINATOR'].includes(newUser.roleCode) && structure?.departments && (
+                    <div>
+                      <label htmlFor="new-user-dept" className="mb-1 block text-xs font-semibold text-slate-700">Department</label>
+                      <select
+                        id="new-user-dept"
+                        value={newUser.departmentId}
+                        onChange={(e) => setNewUser({ ...newUser, departmentId: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"
+                      >
+                        <option value="">-- Select Department --</option>
+                        {structure.departments.map((d: any) => (
+                          <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="new-user-password" className="mb-1 block text-xs font-semibold text-slate-700">Temporary Password</label>
+                    <input
+                      id="new-user-password"
+                      type="password"
+                      required
+                      minLength={8}
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      placeholder="At least 8 characters"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <button
+                    disabled={userSaving}
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700 disabled:opacity-50 shadow-xs"
+                  >
+                    <UserPlus className="h-4 w-4" />{userSaving ? 'Creating Account…' : 'Create User Account'}
+                  </button>
+                </form>
+
+                {/* Users List & Filter */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs xl:col-span-2 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-base font-bold text-slate-900">Institution Accounts Directory</h2>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={userFilterRole}
+                        onChange={(e) => setUserFilterRole(e.target.value)}
+                        className="rounded-lg border border-slate-300 text-xs px-2 py-1.5 bg-white"
+                      >
+                        <option value="">All Roles</option>
+                        {USER_ROLE_OPTIONS.map(([code]) => (
+                          <option key={code} value={code}>{code}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={userFilterStatus}
+                        onChange={(e) => setUserFilterStatus(e.target.value)}
+                        className="rounded-lg border border-slate-300 text-xs px-2 py-1.5 bg-white"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="SUSPENDED">SUSPENDED</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                        className="rounded-lg border border-slate-300 text-xs px-2.5 py-1.5 w-36"
+                      />
+                    </div>
+                  </div>
+
+                  {usersLoading ? (
+                    <p className="py-8 text-center text-xs text-slate-400">Loading accounts…</p>
+                  ) : managedUsers.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 uppercase text-[11px] text-slate-600 font-bold">
+                          <tr>
+                            <th className="py-2.5 px-3">Name</th>
+                            <th className="py-2.5 px-3">Email</th>
+                            <th className="py-2.5 px-3">Role</th>
+                            <th className="py-2.5 px-3">Status</th>
+                            <th className="py-2.5 px-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {managedUsers.map((u) => (
+                            <tr key={u.id} className="hover:bg-slate-50/70">
+                              <td className="py-3 px-3 font-semibold text-slate-900">{u.full_name}</td>
+                              <td className="py-3 px-3 text-slate-600">{u.email}</td>
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-slate-100 text-slate-700">
+                                  {u.role_code}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                  u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {u.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-right space-x-2">
+                                <button
+                                  onClick={() => handleToggleUserStatus(u.id, u.status)}
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold border ${
+                                    u.status === 'ACTIVE'
+                                      ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
+                                      : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                                  }`}
+                                >
+                                  {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setResetTargetUser(u);
+                                    setResetPasswordModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 rounded text-[11px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100"
+                                >
+                                  Reset Pwd
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-xs text-slate-500">
+                      No accounts found matching filter.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* VIEW 2: SYSTEM AUDIT TRAIL */}
+            {usersSubTab === 'audit' && (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Institutional System Audit Trail (audit_logs)</h2>
+                    <p className="text-xs text-slate-500">Immutable trace of all administrative, proctor reassignment, and student operations</p>
+                  </div>
+                  <button
+                    onClick={() => setUsersRefresh((v) => v + 1)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                  </button>
+                </div>
+
+                {auditLoading ? (
+                  <p className="py-8 text-center text-xs text-slate-400">Loading audit records…</p>
+                ) : auditLogs.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px]">
+                        <tr>
+                          <th className="py-2.5 px-3">Timestamp</th>
+                          <th className="py-2.5 px-3">Performed By</th>
+                          <th className="py-2.5 px-3">Action</th>
+                          <th className="py-2.5 px-3">Entity</th>
+                          <th className="py-2.5 px-3">IP Address</th>
+                          <th className="py-2.5 px-3">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/70">
+                            <td className="py-3 px-3 font-mono text-[11px] text-slate-500">
+                              {new Date(log.created_at).toLocaleString()}
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-slate-900">
+                              {log.user_name || 'System / Batch'}
+                              <span className="block font-normal text-[10px] text-slate-400">{log.user_role}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-sky-50 text-sky-800 border border-sky-200">
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-slate-700">{log.entity_type}</td>
+                            <td className="py-3 px-3 font-mono text-[11px] text-slate-500">{log.ip_address || '127.0.0.1'}</td>
+                            <td className="py-3 px-3 font-mono text-[10px] text-slate-500 max-w-xs truncate">
+                              {typeof log.details === 'object' ? JSON.stringify(log.details) : log.details}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-xs text-slate-500">
+                    No audit records registered yet.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         )}
 
-        {/* TAB 1: DASHBOARD OVERVIEW */}
-        {activeTab === 'dashboard' && (
+        {/* ========================================================================= */}
+        {/* TAB: PARENT COMMUNICATION CENTER (MODULE 5.10) */}
+        {/* ========================================================================= */}
+        {activeTab === 'communication' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Institutional Proctoring & Mentoring Dashboard</h1>
-                <p className="text-sm text-slate-500 mt-1">A live view of student mentoring and support activity.</p>
+                <h1 className="text-2xl font-bold text-slate-900">Parent Communication Center</h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Maintain parent notification history, dispatch SMS, Email, and WhatsApp notices for attendance shortages.
+                </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Workspace
+
+              {isAdminRole && (
+                <button
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 shadow-xs"
+                >
+                  <Send className="w-3.5 h-3.5" /> Compose Parent Notice
+                </button>
+              )}
+            </div>
+
+            {/* Filter bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={commChannelFilter}
+                  onChange={(e) => setCommChannelFilter(e.target.value)}
+                  className="rounded-lg border border-slate-300 text-xs px-3 py-1.5 bg-white"
+                >
+                  <option value="">All Channels (SMS, WhatsApp, Email)</option>
+                  <option value="SMS">SMS Gateway</option>
+                  <option value="WHATSAPP">WhatsApp Notice</option>
+                  <option value="EMAIL">Email Alert</option>
+                </select>
+
+                <input
+                  type="text"
+                  placeholder="Search student, USN, or parent..."
+                  value={commSearchTerm}
+                  onChange={(e) => setCommSearchTerm(e.target.value)}
+                  className="rounded-lg border border-slate-300 text-xs px-3 py-1.5 w-64"
+                />
+              </div>
+
+              <span className="text-xs text-slate-500 font-semibold">
+                Total Dispatches: {parentLogs.length}
               </span>
             </div>
 
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <button
-                onClick={() => setActiveTab('students')}
-                className="text-left bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm hover:border-sky-400 hover:shadow transition group"
-              >
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider group-hover:text-sky-600 transition">Total Enrolled</span>
-                  <GraduationCap className="w-5 h-5 text-sky-500" />
+            {/* Communications Table */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              {parentLogsLoading ? (
+                <p className="py-8 text-center text-xs text-slate-400">Loading communications…</p>
+              ) : parentLogs.length ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 uppercase text-[11px] text-slate-600 font-bold">
+                      <tr>
+                        <th className="py-3 px-4">Student</th>
+                        <th className="py-3 px-4">Guardian Details</th>
+                        <th className="py-3 px-4">Channel</th>
+                        <th className="py-3 px-4">Subject & Message</th>
+                        <th className="py-3 px-4">Dispatched By</th>
+                        <th className="py-3 px-4">Sent At</th>
+                        <th className="py-3 px-4">Delivery</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {parentLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-slate-50/70">
+                          <td className="py-3.5 px-4 font-semibold text-slate-900">
+                            {log.student_name}
+                            <span className="block font-mono text-[11px] font-bold text-sky-700">{log.student_usn}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-700">
+                            <span className="font-semibold">{log.guardian_name}</span> ({log.relation})
+                            <span className="block text-[11px] text-slate-500 font-mono">{log.guardian_phone}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                              log.channel === 'SMS' ? 'bg-sky-100 text-sky-800' : log.channel === 'WHATSAPP' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
+                            }`}>
+                              {log.channel}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-sm">
+                            <strong className="text-slate-900 block truncate">{log.subject}</strong>
+                            <p className="text-slate-500 text-[11px] line-clamp-2 mt-0.5">{log.message}</p>
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600">{log.sent_by_name}</td>
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500">
+                            {new Date(log.sent_at).toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {log.delivery_status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats?.totalStudents ?? 0}</p>
-                <span className="text-xs text-slate-500 font-medium">Students in this workspace</span>
-              </button>
+              ) : (
+                <div className="p-8 text-center text-xs text-slate-500">
+                  No parent communications dispatched yet. Click "Compose Parent Notice" to send notices.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: ACCREDITATION & ANALYTICS (MODULE 5.11 / IQAC) */}
+        {/* ========================================================================= */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Accreditation Evidence & Institutional Analytics</h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Accreditation metrics (NBA Criteria 5, NAAC Metric 2.3.4), semester distributions, and proctoring compliance.
+                </p>
+              </div>
 
               <button
-                onClick={() => setActiveTab('proctors')}
-                className="text-left bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm hover:border-indigo-400 hover:shadow transition group"
+                onClick={handleExportAccreditation}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 shadow-xs"
               >
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider group-hover:text-indigo-600 transition">Faculty Mentors</span>
-                  <Users className="w-5 h-5 text-indigo-500" />
-                </div>
-                <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats?.totalFaculty ?? 0}</p>
-                <span className="text-xs text-slate-500 font-medium">Faculty mentors</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('students')}
-                className="text-left bg-white p-5 rounded-xl border border-rose-200 bg-rose-50/20 shadow-sm hover:border-rose-400 hover:shadow transition group"
-              >
-                <div className="flex items-center justify-between text-rose-600">
-                  <span className="text-xs font-semibold uppercase tracking-wider group-hover:text-rose-700 transition">Attendance &lt; 75%</span>
-                  <AlertTriangle className="w-5 h-5 text-rose-500" />
-                </div>
-                <p className="text-3xl font-extrabold text-rose-700 mt-2">{stats?.attendanceShortages ?? 0}</p>
-                <span className="text-xs text-rose-600 font-medium">Action Plans Triggered</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('interventions')}
-                className="text-left bg-white p-5 rounded-xl border border-amber-200 bg-amber-50/20 shadow-sm hover:border-amber-400 hover:shadow transition group"
-              >
-                <div className="flex items-center justify-between text-amber-600">
-                  <span className="text-xs font-semibold uppercase tracking-wider group-hover:text-amber-700 transition">Open Concerns</span>
-                  <Clock className="w-5 h-5 text-amber-500" />
-                </div>
-                <p className="text-3xl font-extrabold text-amber-700 mt-2">{stats?.openConcerns ?? 0}</p>
-                <span className="text-xs text-amber-700 font-medium">Under active follow-up</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('meetings')}
-                className="text-left bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm hover:border-emerald-400 hover:shadow transition group"
-              >
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider group-hover:text-emerald-600 transition">Mentoring Logs</span>
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                </div>
-                <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats?.completedMeetings ?? 0}</p>
-                <span className="text-xs text-slate-500 font-medium">Recorded mentoring meetings</span>
+                <Download className="w-3.5 h-3.5" /> Download Accreditation CSV Report
               </button>
             </div>
 
-            {/* Recent Alerts & Student Quick Access */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold text-slate-900">Student directory</h2>
-                  <button onClick={() => setActiveTab('students')} className="text-xs font-semibold text-sky-600 hover:underline">
-                    View all students &rarr;
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {students.slice(0, 4).map((student) => (
-                    <button key={student.id} onClick={() => viewProctorFile(student.id)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 p-4 text-left transition hover:border-sky-300 hover:bg-sky-50/40">
-                      <span><span className="block text-sm font-semibold text-slate-900">{student.full_name}</span><span className="mt-1 block text-xs text-slate-500">{student.usn || 'No student number'}</span></span>
-                      <span className="text-xs font-semibold text-sky-700">Open record <ChevronRight className="ml-1 inline h-4 w-4" /></span>
-                    </button>
+            {/* Department Breakdown Detailed Table */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Department Performance & Compliance Audit</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 uppercase text-[11px] text-slate-600 font-bold">
+                    <tr>
+                      <th className="py-3 px-3">Dept Code</th>
+                      <th className="py-3 px-3">Department Name</th>
+                      <th className="py-3 px-3">Total Students</th>
+                      <th className="py-3 px-3">Active Mentors</th>
+                      <th className="py-3 px-3">Attendance Shortages</th>
+                      <th className="py-3 px-3">Open Risk Concerns</th>
+                      <th className="py-3 px-3">Average SGPA</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {analyticsData?.departmentBreakdown?.map((d: any) => (
+                      <tr key={d.id} className="hover:bg-slate-50">
+                        <td className="py-3 px-3 font-mono font-bold text-sky-700">{d.code}</td>
+                        <td className="py-3 px-3 font-semibold text-slate-800">{d.name}</td>
+                        <td className="py-3 px-3 font-semibold text-slate-900">{d.student_count}</td>
+                        <td className="py-3 px-3 text-slate-600">{d.faculty_count}</td>
+                        <td className="py-3 px-3">
+                          <span className={`px-2 py-0.5 rounded font-bold ${
+                            Number(d.shortage_count) > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {d.shortage_count}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-semibold text-amber-700">{d.open_issues_count}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{d.avg_sgpa || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Risk Issues & Semester Distribution */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Issues Risk Matrix */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <h3 className="font-bold text-base text-slate-900">Student Risk & Concerns Breakdown</h3>
+                <div className="space-y-2">
+                  {analyticsData?.issuesBreakdown?.map((i: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-slate-100 bg-slate-50/70 text-xs">
+                      <div>
+                        <span className="font-bold text-slate-900">{i.category}</span>
+                        <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          i.severity === 'HIGH' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {i.severity}
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                        {i.count} cases
+                      </span>
+                    </div>
                   ))}
-                  {students.length === 0 && <p className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">No students are available for this account.</p>}
+                  {(!analyticsData?.issuesBreakdown || analyticsData.issuesBreakdown.length === 0) && (
+                    <p className="text-xs text-slate-400 text-center py-4">No risk issues recorded.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Proctor Workload Card */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h2 className="text-base font-bold text-slate-900 mb-4">Mentor Workload Balance</h2>
-                <div className="space-y-4">
-                  {proctors.map((p) => (
-                    <div key={p.faculty_id} className="border border-slate-100 p-3 rounded-lg bg-slate-50">
-                      <div className="flex justify-between items-center text-sm font-semibold">
-                        <span>{p.faculty_name}</span>
-                        <span className="text-xs text-sky-600">{p.active_mentees_count} / {p.max_mentees} Mentees</span>
-                      </div>
-                      <p className="text-xs text-slate-500">{p.designation} • {p.department_code}</p>
-                      <div className="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
-                        <div
-                          className="bg-sky-500 h-2 rounded-full"
-                          style={{ width: `${p.max_mentees ? Math.min(100, (p.active_mentees_count / p.max_mentees) * 100) : 0}%` }}
-                        ></div>
-                      </div>
+              {/* Semester Distribution */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <h3 className="font-bold text-base text-slate-900">Semester-wise Student Distribution</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {analyticsData?.semesterDistribution?.map((s: any) => (
+                    <div key={s.current_semester} className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-center">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase block">Semester {s.current_semester}</span>
+                      <span className="text-xl font-black text-slate-900 block mt-1">{s.student_count}</span>
+                      <span className="text-[10px] text-slate-400">Students</span>
                     </div>
                   ))}
                 </div>
@@ -557,144 +1861,234 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: STUDENTS & DIGITAL PROCTOR BOOK */}
+        {/* ========================================================================= */}
+        {/* TAB: STUDENTS & DIGITAL PROCTOR BOOK (MODULE 5.3) */}
+        {/* ========================================================================= */}
         {activeTab === 'students' && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">Digital Student Success Records (Proctor Files)</h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500">
                   Consolidated academic performance, internal assessments, attendance, and mentoring continuity.
                 </p>
               </div>
 
-              <div className="relative w-72">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search student by Name or USN..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdminRole && (
+                  <button
+                    onClick={() => setAddStudentModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 shadow-xs"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" /> Register New Student
+                  </button>
+                )}
+
+                <div className="relative w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search Name or USN..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
               </div>
             </div>
 
+            {/* Department & Semester Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-xs text-xs">
+              <span className="font-semibold text-slate-500 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" /> Filter by:
+              </span>
+              <select
+                value={studentDeptFilter}
+                onChange={(e) => setStudentDeptFilter(e.target.value)}
+                className="rounded-md border border-slate-300 px-2.5 py-1 text-xs bg-white"
+              >
+                <option value="">All Departments</option>
+                {structure?.departments?.map((d: any) => (
+                  <option key={d.id} value={d.code}>{d.code} - {d.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={studentSemFilter}
+                onChange={(e) => setStudentSemFilter(e.target.value)}
+                className="rounded-md border border-slate-300 px-2.5 py-1 text-xs bg-white"
+              >
+                <option value="">All Semesters</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                  <option key={sem} value={String(sem)}>Semester {sem}</option>
+                ))}
+              </select>
+
+              {(studentDeptFilter || studentSemFilter || searchTerm) && (
+                <button
+                  onClick={() => {
+                    setStudentDeptFilter('');
+                    setStudentSemFilter('');
+                    setSearchTerm('');
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 underline ml-2"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+
             {/* Students Table */}
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-left text-sm">
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+              <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase">
                   <tr>
-                    <th className="px-6 py-3.5">USN</th>
-                    <th className="px-6 py-3.5">Student Name</th>
-                    <th className="px-6 py-3.5">Department</th>
-                    <th className="px-6 py-3.5">Semester & Sec</th>
-                    <th className="px-6 py-3.5">Assigned Proctor</th>
-                    <th className="px-6 py-3.5">Status</th>
-                    <th className="px-6 py-3.5 text-right">Actions</th>
+                    <th className="px-5 py-3">USN</th>
+                    <th className="px-5 py-3">Student Name</th>
+                    <th className="px-5 py-3">Department</th>
+                    <th className="px-5 py-3">Sem & Sec</th>
+                    <th className="px-5 py-3">Assigned Proctor</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-6 py-4 font-mono font-bold text-sky-700">{s.usn}</td>
-                      <td className="px-6 py-4 font-semibold text-slate-900">{s.full_name}</td>
-                      <td className="px-6 py-4 text-slate-600">{s.department_code}</td>
-                      <td className="px-6 py-4 text-slate-600">Sem {s.current_semester} - {s.current_section}</td>
-                      <td className="px-6 py-4 text-slate-700 font-medium">{s.mentor_name || 'Unassigned'}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">
+                      <td className="px-5 py-3.5 font-mono font-bold text-sky-700">{s.usn}</td>
+                      <td className="px-5 py-3.5 font-semibold text-slate-900">{s.full_name}</td>
+                      <td className="px-5 py-3.5 text-slate-600 font-semibold">{s.department_code}</td>
+                      <td className="px-5 py-3.5 text-slate-600">Sem {s.current_semester} - {s.current_section}</td>
+                      <td className="px-5 py-3.5 text-slate-700 font-medium">{s.mentor_name || 'Unassigned'}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                          s.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                        }`}>
                           {s.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-3.5 text-right space-x-2">
                         <button
                           onClick={() => viewProctorFile(s.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-xs border border-sky-200 transition"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-[11px] border border-sky-200 transition"
                         >
-                          <Eye className="w-3.5 h-3.5" /> View Proctor File
+                          <Eye className="w-3 h-3" /> View Proctor File
                         </button>
+                        {isAdminRole && (
+                          <button
+                            onClick={() => handleToggleStudentStatus(s.id, s.status)}
+                            className="px-2 py-1 rounded text-[11px] font-medium text-slate-600 border border-slate-200 hover:bg-slate-100"
+                          >
+                            {s.status === 'ACTIVE' ? 'Graduate' : 'Activate'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
+                  {filteredStudents.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                        No students found matching current filters.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* TAB 3: PROCTOR ALLOCATIONS */}
+        {/* ========================================================================= */}
+        {/* TAB: PROCTOR ALLOCATIONS & WORKLOAD BALANCER (MODULE 5.4) */}
+        {/* ========================================================================= */}
         {activeTab === 'proctors' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">Proctor Allocation & Workload Management</h1>
-                <p className="text-sm text-slate-500">Balance student mentoring quotas and manage historical faculty reassignments.</p>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Balance student mentoring quotas and manage historical faculty reassignments.
+                </p>
               </div>
-              <button
-                onClick={() => setReassignModalOpen(true)}
-                className="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700 flex items-center gap-2 shadow-sm"
-              >
-                <ArrowRightLeft className="w-4 h-4" /> Reassign Student Proctor
-              </button>
+
+              {isAdminRole && (
+                <button
+                  onClick={() => setReassignModalOpen(true)}
+                  className="px-4 py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 flex items-center gap-2 shadow-xs"
+                >
+                  <ArrowRightLeft className="w-4 h-4" /> Reassign Student Proctor
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {proctors.map((p) => (
-                <div key={p.faculty_id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-lg text-slate-900">{p.faculty_name}</h3>
-                      <p className="text-xs text-slate-500 font-medium">{p.designation} • Dept of {p.department_code}</p>
-                      <p className="text-xs text-sky-600 mt-1">{p.faculty_email}</p>
+              {proctors.map((p) => {
+                const ratio = p.max_mentees ? Math.round((p.active_mentees_count / p.max_mentees) * 100) : 0;
+                return (
+                  <div key={p.faculty_id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-base text-slate-900">{p.faculty_name}</h3>
+                        <p className="text-xs text-slate-500">{p.designation} • Dept of {p.department_code}</p>
+                        <p className="text-xs text-sky-600 mt-0.5">{p.faculty_email}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 font-bold rounded bg-slate-100 text-slate-700 font-mono">
+                        EMP: {p.employee_id}
+                      </span>
                     </div>
-                    <span className="text-xs px-2.5 py-1 font-bold rounded-md bg-slate-100 text-slate-700">
-                      ID: {p.employee_id}
-                    </span>
-                  </div>
 
-                  <div className="pt-2 border-t border-slate-100">
-                    <div className="flex justify-between text-xs font-semibold mb-1 text-slate-700">
-                      <span>Mentee Capacity</span>
-                      <span>{p.active_mentees_count} / {p.max_mentees} Students</span>
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex justify-between text-xs font-semibold mb-1 text-slate-700">
+                        <span>Workload Ratio ({ratio}%)</span>
+                        <span className={ratio > 90 ? 'text-rose-600 font-bold' : 'text-slate-700'}>
+                          {p.active_mentees_count} / {p.max_mentees} Students
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-2.5 rounded-full transition-all ${
+                            ratio > 90 ? 'bg-rose-500' : ratio > 70 ? 'bg-amber-500' : 'bg-indigo-600'
+                          }`}
+                          style={{ width: `${Math.min(100, ratio)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-indigo-600 h-2.5 rounded-full"
-                        style={{ width: `${(p.active_mentees_count / p.max_mentees) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
 
-                  <div className="pt-2">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assigned Mentees:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {students
-                        .filter((s) => s.faculty_id === p.faculty_id)
-                        .map((s) => (
-                          <span
-                            key={s.id}
-                            onClick={() => viewProctorFile(s.id)}
-                            className="cursor-pointer text-xs font-medium px-2.5 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition"
-                          >
-                            {s.full_name} ({s.usn})
-                          </span>
-                        ))}
+                    <div className="pt-2">
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Assigned Mentees:</p>
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                        {students
+                          .filter((s) => s.faculty_id === p.faculty_id)
+                          .map((s) => (
+                            <span
+                              key={s.id}
+                              onClick={() => viewProctorFile(s.id)}
+                              className="cursor-pointer text-[11px] font-medium px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition"
+                            >
+                              {s.full_name} ({s.usn})
+                            </span>
+                          ))}
+                        {students.filter((s) => s.faculty_id === p.faculty_id).length === 0 && (
+                          <p className="text-xs text-slate-400 italic">No mentees assigned yet.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* TAB 4: MENTORING MEETINGS */}
+        {/* ========================================================================= */}
+        {/* TAB: MENTORING MEETINGS (MODULE 5.5) */}
+        {/* ========================================================================= */}
         {activeTab === 'meetings' && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">Mentoring Sessions & Meeting Logs</h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500">
                   Track schedule, student attendance, discussion notes, and proactive follow-ups.
                 </p>
               </div>
@@ -707,10 +2101,10 @@ export default function App() {
                 </div>
               ) : (
                 meetings.map((m) => (
-                  <div key={m.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                  <div key={m.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-800 uppercase">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-800 uppercase">
                           {m.meeting_type}
                         </span>
                         <h3 className="font-bold text-base text-slate-900 mt-1">{m.title}</h3>
@@ -718,7 +2112,7 @@ export default function App() {
                           Mentor: <strong className="text-slate-700">{m.mentor_name}</strong>
                         </p>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 font-bold rounded-full ${
+                      <span className={`text-[10px] px-2.5 py-1 font-bold rounded-full ${
                         m.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                       }`}>
                         {m.status}
@@ -743,35 +2137,39 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: CONCERNS & INTERVENTIONS */}
+        {/* ========================================================================= */}
+        {/* TAB: CONCERNS & INTERVENTIONS (MODULE 5.7) */}
+        {/* ========================================================================= */}
         {activeTab === 'interventions' && (
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Student Risk & Intervention Management</h1>
-              <p className="text-sm text-slate-500">Track academic drop-offs, attendance shortages, action plans, and resolution outcomes.</p>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Track academic drop-offs, attendance shortages, action plans, and resolution outcomes.
+              </p>
             </div>
 
             <div className="space-y-4">
               {interventions.map((issue) => (
-                <div key={issue.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div key={issue.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         issue.severity === 'HIGH' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800'
                       }`}>
                         {issue.severity} RISK
                       </span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                         {issue.category}
                       </span>
                       <h3 className="font-bold text-base text-slate-900">{issue.title}</h3>
                     </div>
-                    <span className="text-xs px-2.5 py-1 font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="text-xs px-2.5 py-0.5 font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                       Status: {issue.status}
                     </span>
                   </div>
 
-                  <p className="text-sm text-slate-600">{issue.description}</p>
+                  <p className="text-xs text-slate-600">{issue.description}</p>
 
                   <div className="flex items-center gap-6 text-xs text-slate-500 pt-2 border-t border-slate-100">
                     <span>
@@ -779,13 +2177,13 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => viewProctorFile(issue.student_id)}
-                        className="font-bold text-sky-600 hover:underline hover:text-sky-800 transition"
+                        className="font-bold text-sky-600 hover:underline transition"
                       >
                         {issue.student_name} ({issue.usn})
                       </button>
                     </span>
                     <span>Logged By: <strong className="text-slate-800">{issue.raised_by_name}</strong></span>
-                    <span>Action Plans Active: <strong className="text-slate-800">{issue.total_action_plans}</strong></span>
+                    <span>Action Plans: <strong className="text-slate-800">{issue.total_action_plans}</strong></span>
                   </div>
                 </div>
               ))}
@@ -793,34 +2191,14 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: CONFIDENTIAL COUNSELLING (STRICT ZERO-LEAK ACL) */}
-        {activeTab === 'counselling' && (
-          <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-amber-800">
-                <strong className="font-bold">Confidential records:</strong> Only counsellors and super administrators can access this area. Opening an individual record is audit logged.
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">Counselling sessions</h2>
-              {counsellingSessions.length ? counsellingSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4">
-                  <div><p className="text-sm font-semibold text-slate-900">{session.student_name} <span className="font-normal text-slate-500">({session.usn})</span></p><p className="mt-1 text-xs text-slate-500">Counsellor: {session.counsellor_name || 'Assigned counsellor'}</p></div>
-                  <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{session.general_status || 'OPEN'}</span>
-                </div>
-              )) : <p className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">No counselling sessions are recorded.</p>}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 6: BULK MARKS EXCEL IMPORT */}
+        {/* ========================================================================= */}
+        {/* TAB: BULK MARKS EXCEL IMPORT (MODULE 5.6 & 5.11) */}
+        {/* ========================================================================= */}
         {activeTab === 'import' && (
           <div className="space-y-6 max-w-4xl">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Bulk Academic Marks & Attendance Import Engine</h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500">
                 Upload institutional Excel spreadsheets (.xlsx) with automated row-level validation, VTU IA calculation rules, and preview error logs.
               </p>
             </div>
@@ -832,14 +2210,14 @@ export default function App() {
                 File must include columns: <code>USN</code>, <code>SubjectCode</code>, <code>Semester</code>, <code>IA1</code> (0-50), <code>IA2</code> (0-50), and <code>VTU_External</code>.
               </p>
 
-              <label className="mt-4 inline-block px-5 py-2.5 bg-sky-600 text-white rounded-lg text-sm font-semibold cursor-pointer hover:bg-sky-700 transition shadow-sm">
+              <label className="mt-4 inline-block px-5 py-2.5 bg-sky-600 text-white rounded-lg text-xs font-semibold cursor-pointer hover:bg-sky-700 transition shadow-xs">
                 {uploading ? 'Validating Workbook...' : 'Select .xlsx Spreadsheet'}
                 <input type="file" accept=".xlsx" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
 
             {importResult && (
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-base text-slate-900">Validation Pre-flight Summary</h3>
@@ -891,9 +2269,40 @@ export default function App() {
             )}
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB: CONFIDENTIAL COUNSELLING (MODULE 5.8) */}
+        {/* ========================================================================= */}
+        {activeTab === 'counselling' && (
+          <div className="space-y-6">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-amber-800">
+                <strong className="font-bold">Confidential records:</strong> Only counsellors and super administrators can access this area. Opening an individual record is audit logged.
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+              <h2 className="text-lg font-bold text-slate-900">Counselling sessions</h2>
+              {counsellingSessions.length ? counsellingSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{session.student_name} <span className="font-normal text-slate-500">({session.usn})</span></p>
+                    <p className="mt-1 text-xs text-slate-500">Counsellor: {session.counsellor_name || 'Assigned counsellor'}</p>
+                  </div>
+                  <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{session.general_status || 'OPEN'}</span>
+                </div>
+              )) : (
+                <p className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">No counselling sessions recorded.</p>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
+      {/* ========================================================================= */}
       {/* FULL DIGITAL PROCTOR FILE MODAL */}
+      {/* ========================================================================= */}
       {proctorFile && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
@@ -1027,7 +2436,6 @@ export default function App() {
                     <Award className="w-4 h-4 text-amber-500" /> Student Development, Goals & Certifications
                   </h3>
 
-                  {/* Certifications with credential links */}
                   {proctorFile.development.certificates?.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Earned Certifications:</p>
@@ -1058,29 +2466,6 @@ export default function App() {
                       </div>
                     </div>
                   )}
-
-                  {/* Goals */}
-                  {proctorFile.development.goals?.length > 0 && (
-                    <div className="space-y-2 mt-3 pt-3 border-t border-slate-100">
-                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Development Goals:</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {proctorFile.development.goals.map((g: any) => (
-                          <div key={g.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50/50 text-xs space-y-1.5">
-                            <div className="flex justify-between font-semibold">
-                              <span>{g.title}</span>
-                              <span className="text-sky-600 font-bold">{g.progress_percentage}%</span>
-                            </div>
-                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                              <div
-                                className="bg-sky-500 h-2 rounded-full transition-all"
-                                style={{ width: `${g.progress_percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -1089,10 +2474,10 @@ export default function App() {
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-sky-600" /> Stored Student Documents (Local Database)
+                      <FileText className="w-4 h-4 text-sky-600" /> Stored Student Documents (Local Database BYTEA)
                     </h3>
                     <p className="text-[11px] text-slate-500">
-                      Files are securely stored directly in PostgreSQL (BYTEA) without cloud storage dependencies.
+                      Files are stored directly in PostgreSQL (BYTEA) without cloud storage dependencies.
                     </p>
                   </div>
 
@@ -1162,7 +2547,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500 bg-slate-50/40">
-                    No documents stored in the database for this student yet. Click "Upload File to Database" to attach marks cards, Aadhar, or certificates.
+                    No documents stored in the database for this student yet. Click "Upload File to Database" to attach marks cards or certificates.
                   </div>
                 )}
               </div>
@@ -1181,18 +2566,600 @@ export default function App() {
         </div>
       )}
 
-      {/* REASSIGN PROCTOR MODAL */}
+      {/* ========================================================================= */}
+      {/* MODAL: REGISTER NEW STUDENT */}
+      {/* ========================================================================= */}
+      {addStudentModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900">Register New Student Record</h3>
+              <button onClick={() => setAddStudentModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterStudent} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">USN (University Roll No)</label>
+                  <input
+                    required
+                    placeholder="1VE21CS042"
+                    value={newStudentData.usn}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, usn: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Full Name</label>
+                  <input
+                    required
+                    placeholder="Rohit Verma"
+                    value={newStudentData.fullName}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, fullName: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Student Email</label>
+                  <input
+                    type="email"
+                    placeholder="rohit.cs@svit.edu.in"
+                    value={newStudentData.email}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, email: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Student Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="+91 98765 00000"
+                    value={newStudentData.phone}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, phone: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-1">
+                  <label className="font-semibold text-slate-700 block mb-1">Department</label>
+                  <select
+                    required
+                    value={newStudentData.departmentId}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, departmentId: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  >
+                    <option value="">Select Dept</option>
+                    {structure?.departments?.map((d: any) => (
+                      <option key={d.id} value={d.id}>{d.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Semester</label>
+                  <select
+                    value={newStudentData.currentSemester}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, currentSemester: Number(e.target.value) })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                      <option key={s} value={s}>Sem {s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Section</label>
+                  <input
+                    placeholder="A"
+                    value={newStudentData.currentSection}
+                    onChange={(e) => setNewStudentData({ ...newStudentData, currentSection: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="font-bold text-slate-800 mb-2">Guardian / Parent Contact</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Guardian Name</label>
+                    <input
+                      placeholder="Mr. Verma"
+                      value={newStudentData.guardianName}
+                      onChange={(e) => setNewStudentData({ ...newStudentData, guardianName: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Relation</label>
+                    <select
+                      value={newStudentData.guardianRelation}
+                      onChange={(e) => setNewStudentData({ ...newStudentData, guardianRelation: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-md"
+                    >
+                      <option value="Father">Father</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Guardian">Local Guardian</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Parent Phone</label>
+                    <input
+                      placeholder="+91 98765 11111"
+                      value={newStudentData.guardianPhone}
+                      onChange={(e) => setNewStudentData({ ...newStudentData, guardianPhone: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-md"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setAddStudentModalOpen(false)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-sky-600 text-white rounded-md font-semibold hover:bg-sky-700"
+                >
+                  Save Student Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: BROADCAST PARENT ALERT / NOTICE */}
+      {/* ========================================================================= */}
+      {broadcastModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                <Send className="w-4 h-4 text-sky-600" /> Dispatch Parent Alert / Notice
+              </h3>
+              <button onClick={() => setBroadcastModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBroadcast} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Target Group</label>
+                <select
+                  value={broadcastData.targetGroup}
+                  onChange={(e) => setBroadcastData({ ...broadcastData, targetGroup: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                >
+                  <option value="ATTENDANCE_SHORTAGE">Parents of Students with Attendance &lt; 75%</option>
+                  <option value="ALL">All Enrolled Students' Parents</option>
+                  <option value="DEPARTMENT">Specific Department</option>
+                  <option value="SEMESTER">Specific Semester</option>
+                </select>
+              </div>
+
+              {broadcastData.targetGroup === 'DEPARTMENT' && (
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Select Department</label>
+                  <select
+                    value={broadcastData.departmentId}
+                    onChange={(e) => setBroadcastData({ ...broadcastData, departmentId: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  >
+                    <option value="">-- Choose Department --</option>
+                    {structure?.departments?.map((d: any) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {broadcastData.targetGroup === 'SEMESTER' && (
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Select Semester</label>
+                  <select
+                    value={broadcastData.semester}
+                    onChange={(e) => setBroadcastData({ ...broadcastData, semester: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                      <option key={s} value={String(s)}>Semester {s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Communication Channel</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['SMS', 'WHATSAPP', 'EMAIL'].map((ch) => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => setBroadcastData({ ...broadcastData, channel: ch })}
+                      className={`py-2 text-center rounded-lg border font-semibold ${
+                        broadcastData.channel === ch
+                          ? 'border-sky-600 bg-sky-50 text-sky-700'
+                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {ch}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Subject / Header</label>
+                <input
+                  required
+                  value={broadcastData.subject}
+                  onChange={(e) => setBroadcastData({ ...broadcastData, subject: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Notice Message Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={broadcastData.message}
+                  onChange={(e) => setBroadcastData({ ...broadcastData, message: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(false)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-sky-600 text-white rounded-md font-semibold hover:bg-sky-700"
+                >
+                  Confirm & Dispatch Notices
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: RESET PASSWORD */}
+      {/* ========================================================================= */}
+      {resetPasswordModalOpen && resetTargetUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900 flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-sky-600" /> Reset Password
+              </h3>
+              <button onClick={() => setResetPasswordModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Reset temporary sign-in password for <strong>{resetTargetUser.full_name}</strong> ({resetTargetUser.email}).
+            </p>
+
+            <form onSubmit={handleResetPassword} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">New Temporary Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="At least 8 characters"
+                  value={newTempPassword}
+                  onChange={(e) => setNewTempPassword(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResetPasswordModalOpen(false)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={resetSubmitting}
+                  type="submit"
+                  className="px-4 py-1.5 bg-sky-600 text-white rounded-md font-semibold hover:bg-sky-700"
+                >
+                  {resetSubmitting ? 'Resetting…' : 'Set New Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD ACADEMIC YEAR */}
+      {/* ========================================================================= */}
+      {newAyModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900">Add Academic Year</h3>
+              <button onClick={() => setNewAyModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateAcademicYear} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Academic Year Name</label>
+                <input
+                  required
+                  placeholder="2025-2026"
+                  value={newAyData.name}
+                  onChange={(e) => setNewAyData({ ...newAyData, name: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={newAyData.startDate}
+                    onChange={(e) => setNewAyData({ ...newAyData, startDate: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={newAyData.endDate}
+                    onChange={(e) => setNewAyData({ ...newAyData, endDate: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={newAyData.isCurrent}
+                  onChange={(e) => setNewAyData({ ...newAyData, isCurrent: e.target.checked })}
+                  className="rounded text-sky-600"
+                />
+                <span className="text-slate-700 font-semibold">Set as Current Active Cycle</span>
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setNewAyModalOpen(false)} className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-sky-600 text-white rounded-md font-semibold hover:bg-sky-700">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD DEPARTMENT */}
+      {/* ========================================================================= */}
+      {newDeptModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900">Add New Department</h3>
+              <button onClick={() => setNewDeptModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateDepartment} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Department Code</label>
+                <input
+                  required
+                  placeholder="e.g. ISE, ECE, ME"
+                  value={newDeptData.code}
+                  onChange={(e) => setNewDeptData({ ...newDeptData, code: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Department Name</label>
+                <input
+                  required
+                  placeholder="Information Science & Engineering"
+                  value={newDeptData.name}
+                  onChange={(e) => setNewDeptData({ ...newDeptData, name: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setNewDeptModalOpen(false)} className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD PROGRAMME */}
+      {/* ========================================================================= */}
+      {newProgModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900">Add Programme</h3>
+              <button onClick={() => setNewProgModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateProgramme} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Department</label>
+                <select
+                  required
+                  value={newProgData.departmentId}
+                  onChange={(e) => setNewProgData({ ...newProgData, departmentId: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                >
+                  <option value="">-- Select Department --</option>
+                  {structure?.departments?.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Programme Code</label>
+                <input
+                  required
+                  placeholder="B_TECH_ISE"
+                  value={newProgData.code}
+                  onChange={(e) => setNewProgData({ ...newProgData, code: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md uppercase"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Programme Name</label>
+                <input
+                  required
+                  placeholder="Bachelor of Engineering in ISE"
+                  value={newProgData.name}
+                  onChange={(e) => setNewProgData({ ...newProgData, name: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Degree Level</label>
+                  <select
+                    value={newProgData.degreeLevel}
+                    onChange={(e) => setNewProgData({ ...newProgData, degreeLevel: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  >
+                    <option value="UG">Undergraduate (UG)</option>
+                    <option value="PG">Postgraduate (PG)</option>
+                    <option value="DIPLOMA">Diploma</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Total Semesters</label>
+                  <input
+                    type="number"
+                    value={newProgData.totalSemesters}
+                    onChange={(e) => setNewProgData({ ...newProgData, totalSemesters: Number(e.target.value) })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setNewProgModalOpen(false)} className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-slate-800 text-white rounded-md font-semibold hover:bg-slate-900">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD BATCH */}
+      {/* ========================================================================= */}
+      {newBatchModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-base text-slate-900">Add Academic Batch</h3>
+              <button onClick={() => setNewBatchModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateBatch} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Programme</label>
+                <select
+                  required
+                  value={newBatchData.programmeId}
+                  onChange={(e) => setNewBatchData({ ...newBatchData, programmeId: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                >
+                  <option value="">-- Choose Programme --</option>
+                  {structure?.programmes?.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Batch Name</label>
+                <input
+                  required
+                  placeholder="2023-2027"
+                  value={newBatchData.name}
+                  onChange={(e) => setNewBatchData({ ...newBatchData, name: e.target.value })}
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Admission Year</label>
+                  <input
+                    type="number"
+                    value={newBatchData.admissionYear}
+                    onChange={(e) => setNewBatchData({ ...newBatchData, admissionYear: Number(e.target.value) })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Graduation Year</label>
+                  <input
+                    type="number"
+                    value={newBatchData.graduationYear}
+                    onChange={(e) => setNewBatchData({ ...newBatchData, graduationYear: Number(e.target.value) })}
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setNewBatchModalOpen(false)} className="px-3 py-1.5 border border-slate-300 rounded-md text-slate-600">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-sky-600 text-white rounded-md font-semibold hover:bg-sky-700">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: REASSIGN PROCTOR */}
+      {/* ========================================================================= */}
       {reassignModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-900">Reassign Student Proctor</h3>
+              <h3 className="font-bold text-base text-slate-900">Reassign Student Proctor</h3>
               <button onClick={() => setReassignModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleReassign} className="space-y-4 text-xs">
+            <form onSubmit={handleReassign} className="space-y-3 text-xs">
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Select Student</label>
                 <select
@@ -1227,7 +3194,7 @@ export default function App() {
                 <label className="font-semibold text-slate-700 block mb-1">Reason for Reassignment (Audit Trail)</label>
                 <textarea
                   required
-                  placeholder="e.g. End-of-semester batch rotation, workload rebalancing, or student request."
+                  placeholder="e.g. Workload balancing, faculty departure, or student request."
                   value={reassignData.reason}
                   onChange={(e) => setReassignData({ ...reassignData, reason: e.target.value })}
                   className="w-full p-2 border border-slate-300 rounded-md h-20"

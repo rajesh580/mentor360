@@ -1,0 +1,832 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14"><w:body>Contents
+1. Introduction and purpose
+2. Scope and product boundaries
+3. Users, roles and responsibilities
+4. System overview and how the system will be used
+5. Complete module catalogue and functional requirements
+6. Workflows and step-by-step flowcharts
+7. Working/system architecture
+8. Database design and core entities
+9. Module relationships and data flow
+10. Authentication, access control and privacy
+11. Functional and non-functional requirements
+12. Reports, imports and historical migration
+13. Implementation phases, testing and acceptance
+14. Decisions to confirm
+
+1. Introduction and Purpose
+1.1 Introduction
+Mentor360 is a web-based Mentoring, Student Development and Proctoring Platform designed to simplify the management of student-related activities in educational institutions. The system provides a common platform for maintaining student records, managing mentor–student interactions, monitoring academic performance and tracking student development.
+In many institutions, mentoring information, academic records, attendance details and follow-up activities are maintained through paper files, spreadsheets or separate systems. Managing these records manually can make it difficult to access updated information, maintain consistent records and track the progress of individual students.
+Mentor360 aims to address these challenges by bringing the major mentoring and student-monitoring activities into one organized digital platform. It connects student profiles with proctor allocation, mentoring meetings, academic information, counselling records, interventions, parent communication and career-development activities.
+The platform is intended to help faculty and administrators manage student information more efficiently while ensuring that access to records is controlled according to user roles and responsibilities.
+1.2 Purpose of the System
+The main purpose of Mentor360 is to provide a centralized platform for managing student mentoring, proctoring and development activities throughout the academic year.
+The system is intended to reduce manual record-keeping, improve communication between students and mentors, support timely follow-up of student concerns and make relevant academic and development information easier to access.
+It also aims to maintain a digital history of mentoring activities and student progress so that authorized faculty members can review previous interactions and take appropriate action when required.
+
+
+1.3 Main objectives
+The major objectives of Mentor360 are:
+To maintain a centralized digital record for every student.
+To simplify student registration, faculty management and proctor allocation.
+To record mentoring meetings, observations and follow-up activities.
+To monitor attendance, marks, results and academic progress.
+To identify student concerns and track appropriate interventions.
+To maintain counselling information with suitable confidentiality controls.
+To record student goals, skills, achievements, internships and career-readiness activities.
+To improve communication with parents through approved communication facilities.
+To generate useful dashboards and reports for authorized users.
+To protect student information through authentication and role-based access control.
+1.4 Problem Statement
+The management of student mentoring and proctoring activities can become difficult when information is maintained in separate paper records, spreadsheets and departmental files. Faculty members may need to refer to multiple sources to understand a student's academic progress, previous mentoring discussions and pending follow-up activities.
+Manual processes can also make it difficult to track unresolved concerns, maintain consistent communication records and prepare consolidated reports.
+Therefore, a centralized digital system is needed to organize student-related information, maintain mentoring history, support follow-up activities and provide relevant information to authorized users in a secure and convenient manner.
+
+
+
+
+
+
+
+
+2. Scope and Product Boundaries
+2.1 Project Scope
+Mentor360 is a web-based platform designed to manage student mentoring, proctoring, academic monitoring and student development activities in one place. It aims to reduce dependence on paper-based proctor files, separate spreadsheets and manual follow-up records.
+The system will maintain student, faculty and parent/guardian information and connect these records with mentoring meetings, academic performance, attendance, counselling, student concerns, follow-up actions and career development activities. It will also provide role-based dashboards, reports and communication facilities to help authorized users monitor student progress.
+The platform will be developed as a modular system so that each department or user can access the functions relevant to their responsibilities.
+2.2 Features Included in the Scope
+2.2 Features Included in the Scope
+Administration and configuration: Manage academic years, departments, programmes, batches, semesters and sections.
+User and access management: Maintain user accounts, roles and permissions.
+Student and faculty records: Store student, faculty and parent/guardian details, including digital proctor files.
+Proctor allocation: Assign students to mentors and manage proctor groups.
+Mentoring management: Schedule meetings, record discussions and maintain meeting history.
+Academic monitoring: Manage attendance, marks, examination results and academic summaries.
+Student intervention: Record concerns, create action plans, assign tasks and track follow-ups.
+Counselling records: Maintain confidential counselling information with restricted access.
+Student development: Track goals, skills, certificates, achievements, internships and career readiness.
+Parent communication: Maintain communication history and provide a restricted parent dashboard.
+Reports and analytics: Generate relevant summaries, dashboards and permitted data exports.
+Mentor reassignment: Transfer students from one mentor/proctor to another mentor when required.
+Semester-wise mentor transition: Support mentor changes at the end of each semester according to institutional policies.
+Academic-year mentor transition: Facilitate mentor reassignment at the beginning of a new academic year.
+Individual student transfer: Allow authorised administrators to transfer a single student to another mentor.
+Bulk student transfer: Enable administrators to transfer multiple students or an entire proctor group to a new mentor.
+Mentor allocation management: Assign students to available mentors based on department, programme, batch, semester and institutional requirements.
+Mentor workload management: Display the number of students assigned to each mentor to support balanced student allocation.
+Reassignment approval: Provide an approval mechanism for mentor transfers, where required by institutional policy.
+Effective-date management: Specify the date from which the new mentor assignment becomes active.
+Previous mentor history: Maintain records of previous mentor–student associations, including the mentor's details and the corresponding semester or academic year.
+Mentoring history preservation: Retain previous meeting records, discussion notes, academic observations, action plans and follow-up records after reassignment.
+Student profile continuity: Ensure that student academic records, attendance, marks, counselling references and development progress remain linked to the student's profile after the mentor changes.
+New mentor access: Provide the newly assigned mentor with appropriate access to the student's permitted records and relevant mentoring history, subject to role-based permissions and confidentiality requirements.
+Previous mentor access control: Restrict or update the previous mentor's access to the student's current records according to institutional policies, while preserving authorised access to historical records.
+Notification management: Notify the concerned student, previous mentor, new mentor and authorised administrators about completed mentor reassignment.
+Reassignment audit trail: Maintain details of the previous mentor, new mentor, reassignment date, academic period, reason and authorised user who performed or approved the transfer.
+Manual reassignment: Allow authorised administrators to change mentor allocations outside the regular semester or academic-year transition when necessary.
+Mentor reassignment reports: Generate reports showing current mentor allocations, previous assignments, transferred students and semester-wise or academic-year-wise reassignment history.
+
+
+
+2.3 System Boundaries
+Mentor360 will manage the student-related information and workflows entered into or imported into the platform. It will support authorized users in maintaining records, reviewing student progress, recording mentoring activities and tracking follow-up actions.
+The system will not independently verify the correctness of academic information supplied by users or external files. The institution will be responsible for providing accurate records and approving the rules used for academic calculations, risk identification and student interventions.
+External services such as email, SMS, cloud storage and college ERP systems will be used only if the required integrations are approved and configured. Access to student and parent information will be controlled by the permissions defined for the platform.
+2.4 Assumptions and Dependencies
+The institution will provide accurate student, faculty and guardian records.
+Authorized staff will maintain academic, attendance and mentoring information.
+The college will define user permissions and parent-visible information.
+The technical team will confirm the hosting environment, database and file-storage solution.
+Data imports will follow agreed formats and validation rules.
+External messaging and integration features will depend on provider access, configuration and approval.
+The institution will approve data privacy, retention, backup and recovery policies.
+2.5 Future Enhancements
+AI-assisted identification of students who may need additional support.
+ERP and university-system integration.
+Mobile application for students, mentors and parents.
+Advanced academic and student-development analytics.
+Automated notifications and scheduled reports.
+Expanded accreditation and institutional performance reporting.
+
+3. Users, Roles and Responsibilities
+3.1 Overview
+Mentor360 supports multiple user roles to manage institutional administration, academic monitoring, student mentoring, counselling, career development and accreditation activities. Each role is assigned specific responsibilities and access permissions based on the user's position and duties within the institution.
+The system follows a role-based access control approach, ensuring that users can access only the modules, records and operations relevant to their responsibilities. The access level ranges from platform-wide administration to institution-level monitoring and individual student access.
+3.2 User Roles and Responsibilities
+
+<w:tbl><w:tblPr><w:tblStyle w:val="PlainTable1"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="846"/><w:gridCol w:w="1978"/><w:gridCol w:w="6872"/></w:tblGrid><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="29AE3BCC" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="100000000000" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>Sl. No.
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>User Role
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Responsibilities
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="26EAEB4A" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>1
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Super Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Manages the overall SaaS platform, institution accounts, platform-wide settings and system-level administration.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="6AA00D41" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>2
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>University Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Manages university-level configuration, monitors associated institutions and reviews university-wide analytics and reports.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="7F5A1800" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>3
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Institution Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Manages institution settings, user accounts, academic configuration, student records and institutional reports.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="16166360" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>4
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Principal/ Director
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Monitors overall institutional performance, academic progress, mentoring activities and student-support outcomes.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="7B8A2BD9" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>5
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Dean
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Reviews academic performance, attendance, examination results and progress across assigned academic areas.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="6EBA348F" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>6
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>HOD
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Monitors departmental academic activities, student progress, faculty mentoring and pending follow-up actions.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="43D89B4B" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>7
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Proctor Coordinator
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Allocates students to proctors, manages proctor groups and coordinates mentoring activities and follow-ups.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="265851BD" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>8
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Faculty / Proctor / Mentor
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Manages assigned student records, conducts mentoring meetings, records permitted observations and tracks student progress and follow-up actions.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="085F024B" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>9
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Student
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Views personal records and permitted academic information, updates allowed details and tracks development activities.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="671D6896" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>10
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Parent / Guardian
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Views permitted information about linked students and accesses available notices and communication facilities.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="081AE1F7" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>11
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Counsellor
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Manages counselling sessions, confidential records and related follow-up activities with restricted access.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="2540F672" w14:textId="77777777" w:rsidTr="00F6080F"><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>12
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>Placement Officer
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Maintains placement and internship information, tracks career readiness and prepares placement-related reports.
+</w:tc></w:tr><w:tr w:rsidR="00E123C3" w:rsidRPr="00E123C3" w14:paraId="1DCD5C74" w14:textId="77777777" w:rsidTr="00F6080F"><w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr><w:tc><w:tcPr><w:cnfStyle w:val="001000000000" w:firstRow="0" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/><w:tcW w:w="846" w:type="dxa"/><w:hideMark/></w:tcPr>13
+</w:tc><w:tc><w:tcPr><w:tcW w:w="1978" w:type="dxa"/><w:hideMark/></w:tcPr>IQAC / Accreditation Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Organizes quality-assurance records, maintains accreditation evidence and generates relevant institutional reports.
+</w:tc></w:tr></w:tbl>3.3 Role Hierarchy and Access Levels
+Mentor360 follows a layered access structure:
+Platform level: Super Admin.
+University level: University Admin.
+Institution level: Institution Admin and Principal / Director.
+Academic monitoring level: Dean and HOD.
+Mentoring coordination level: Proctor Coordinator.
+Student-support level: Faculty / Proctor / Mentor and Counsellor.
+Specialized operational level: Placement Officer and IQAC / Accreditation Admin.
+Individual access level: Student and Parent / Guardian.
+This hierarchy describes the general administrative structure. Actual permissions must be configured according to institutional policy, organizational scope and the responsibilities assigned to each user.
+
+3.4 Access Control and Responsibilities
+The system shall apply the following access-control principles:
+Each user shall sign in through an authenticated account.
+Permissions shall be assigned according to the user's role.
+University-level users shall be restricted to their assigned university scope.
+Institution-level users shall be restricted to their institution's records.
+HODs and proctor coordinators shall access information within their assigned scope.
+Faculty, proctors and mentors shall access student records permitted by their assignments.
+Counselling information shall be restricted to specifically authorized users.
+Students and parents shall access only their own or linked information that the institution permits.
+Placement and accreditation users shall access records required for their assigned activities.
+Important administrative actions and sensitive record changes shall be logged according to the system's audit policy.
+3.5 Role and Permission Management
+The Institution Admin or other designated administrator shall manage user assignments within the scope permitted by the platform. Higher-level administrative roles shall be restricted to their respective organizational levels.
+The system should allow permissions to be updated when a user's responsibilities change. For example, when a student is reassigned to a different proctor, the previous and new allocations should be recorded, and access should reflect the current approved assignment. The final role-permission matrix must be reviewed and approved before implementation.
+
+
+
+
+
+
+4. System Overview and Operating Concept
+4.1 System Overview
+Mentor360 is a web-based Mentoring, Student Development and Proctoring Platform designed to manage student-related activities in a centralized system. It brings together student records, faculty details, mentor allocation, academic monitoring, counselling, parent communication and career-development activities.
+The system provides different interfaces and access permissions for administrators, university officials, faculty members, mentors, counsellors, students, parents and other authorized users. Each user can access the information and functions required for their responsibilities.
+By maintaining student information in a structured digital format, Mentor360 aims to reduce manual record-keeping, simplify access to information and improve the monitoring of student progress throughout the academic year.
+4.2 How the System Works
+The system follows a sequence of activities, starting with institutional configuration and continuing through mentoring, monitoring and reporting.
+Institution setup: The administrator configures the institution, academic year, departments, programmes, batches and semesters.
+Record management: Student, faculty and parent/guardian details are created or imported into the system.
+Proctor allocation: The Proctor Coordinator assigns students to their respective proctors or mentors.
+Mentoring activities: Mentors schedule meetings, record permitted observations and maintain follow-up information.
+Academic monitoring: Attendance, marks and examination results are entered or imported for review.
+Student support: Concerns are recorded, and action plans or follow-up activities are created where necessary.
+Additional services: Counselling, parent communication, student development and placement-related information are maintained by the relevant users.
+Reporting: Dashboards and reports provide summaries based on the user's role and access permissions.
+This process allows the institution to maintain a continuous record of student-related activities rather than managing each activity separately.
+4.3 Digital Student Success Record
+The Digital Student Success Record is the central student profile in Mentor360. It brings together information from different modules to provide an organized view of a student's academic progress, mentoring history and development activities.
+Depending on the user's permissions, the profile may include:
+Personal and academic details.
+Faculty and proctor allocation information.
+Mentoring meeting history and follow-up actions.
+Attendance, marks and examination results.
+Student concerns and intervention progress.
+Goals, skills, certificates and achievements.
+Internship and career-development information.
+Relevant parent communication records.
+The record helps authorized users understand a student's progress over time and review previous actions when providing support. However, confidential counselling notes and other restricted information will not be available to every user.
+4.4 Operating Environment
+Mentor360 is planned as a web application that can be accessed through a supported web browser on a computer or compatible device. Users will sign in with their accounts and access the modules permitted for their roles.
+The application will communicate with a backend service to process requests, apply business rules and manage information stored in the database. Uploaded documents will be stored using an approved file-storage solution.
+The hosting environment, supported browsers, database configuration and file-storage service will be finalized during technical design.
+
+4.5 System Dependencies and Constraints
+The proper functioning of Mentor360 depends on the availability and accuracy of the information maintained in the system. Academic summaries and reports will depend on the quality of the records entered or imported by authorized users.
+The institution must define user permissions, parent-visible information, risk-identification rules and data-retention policies. External services such as email, SMS and college ERP systems will be available only when the required integrations are approved and configured.
+The system must also maintain appropriate access restrictions to protect student records and confidential information.
+5. Complete Module Catalogue and Functional Requirements
+Mentor360 is divided into 11 modules, each responsible for a specific set of activities. The modules share relevant information so that student records, mentoring activities, academic monitoring and development information can be managed together.
+5.1 Administration and Configuration
+This module manages the basic institutional information required for Mentor360 to operate. It allows administrators to maintain the academic structure and settings used by other modules.
+Functional requirements:
+Maintain institution details and academic years.
+Manage departments, programmes, batches, semesters and sections.
+Configure institution-level settings.
+Maintain the academic structure required for student allocation and reporting.
+Allow only permitted administrators to modify configuration details.
+5.2 User, Role and Access Management
+This module manages user accounts and controls access to the platform. It ensures that users can perform only the activities permitted for their assigned roles.
+Functional requirements:
+Create, update, activate and deactivate user accounts.
+Assign roles and organizational access levels.
+Manage permissions for viewing and modifying records.
+Restrict access according to the user's role and assigned scope.
+Maintain records of important changes to user accounts and permissions.
+5.3 Student, Faculty and Parent Records
+This module maintains the basic records of students, faculty members and parents or guardians. These records form the foundation for mentoring, academic monitoring and communication activities.
+Functional requirements:
+Create and update student, faculty and guardian records.
+Import records using agreed data formats.
+Validate required fields and identify duplicate records.
+Maintain student profiles and digital proctor files.
+Link students with their verified parents or guardians.
+Provide authorized users with access to relevant student information.
+5.4 Proctor Allocation and Group Management
+This module manages the assignment of students to proctors or mentors. It helps coordinators organize mentoring groups and maintain a record of allocation changes.
+Functional requirements:
+Assign students to proctors or mentors.
+Create and manage proctor groups.
+View allocation lists and assigned student details.
+Record allocation changes and maintain allocation history.
+Allow coordinators to review assignments within their permitted scope.
+5.5 Mentoring and Meeting Management
+This module records mentoring meetings and student interactions. It helps mentors maintain a consistent history of discussions and track follow-up activities.
+Functional requirements:
+Schedule, update and cancel mentoring meetings.
+Record meeting dates, participants and attendance.
+Maintain permitted meeting notes and observations.
+Link meetings to student concerns and action plans where necessary.
+View previous meetings and pending follow-ups.
+Maintain a history of mentoring activities for assigned students.
+5.6 Academic Performance and Attendance
+This module maintains academic and attendance information for student monitoring. It supports the review of student performance across academic periods.
+Functional requirements:
+Enter or import attendance information.
+Maintain internal marks and examination results.
+Display available academic summaries, including SGPA, CGPA and backlogs.
+Validate academic data and identify incomplete records.
+Provide relevant academic information to authorized dashboards and reports.
+Distinguish missing data from actual zero values.
+5.7 Student Risk and Intervention Management
+This module supports the recording and follow-up of student concerns. It helps authorized staff document the actions taken and monitor progress towards resolution.
+Functional requirements:
+Record student concerns identified during mentoring or academic review.
+Maintain concern categories, status and permitted severity.
+Create action plans and assign tasks to responsible users.
+Set due dates and record follow-up activities.
+Track intervention progress and outcomes.
+Support escalation where required by institutional procedures.
+The categories, risk thresholds and escalation rules must be confirmed with the institution before implementation.
+5.8 Counselling and Confidential Records
+This module manages counselling-related information and protects sensitive student records through restricted access.
+Functional requirements:
+Maintain counselling session records.
+Record confidential notes and related follow-up details.
+Restrict access to specifically authorized users.
+Maintain relevant case status and outcomes.
+Prevent unauthorized access to counselling information through general profiles, reports and exports.
+Record important changes to confidential records according to the agreed audit policy.
+5.9 Student Development and Career Readiness
+This module records student-development activities beyond academic performance. It helps track personal goals, professional skills and career-preparation activities.
+Functional requirements:
+Maintain student goals and progress.
+Record skills, certifications and achievements.
+Track activities, internships and career-readiness information.
+Maintain permitted student-development records.
+Provide summaries of student achievements and development activities.
+Support placement-related information sharing according to assigned permissions.
+5.10 Communication and Notifications
+This module maintains communication records and supports the delivery of permitted notices and notifications to relevant users.
+Functional requirements:
+Maintain parent and student communication history.
+Provide a restricted parent dashboard.
+Display relevant notices, reminders and notifications.
+Support configured notification channels where available.
+Record delivery status when supported by the selected service.
+Verify the student–guardian relationship before displaying linked information.
+Ensure that recipients receive only information they are permitted to view.
+The final communication channels and external service providers will be selected during implementation planning.
+5.11 Dashboards, Reports and Analytics
+This module presents information from other modules in a summarized format. It helps administrators and staff monitor institutional activities and review student progress.
+Functional requirements:
+Provide dashboards based on user roles.
+Generate proctor allocation and mentoring reports.
+Summarize attendance, marks and examination results.
+Report pending follow-ups and intervention status.
+Generate student-development and placement summaries.
+Support permitted report exports in PDF, Excel or CSV formats.
+Restrict sensitive reports and exports according to user permissions.
+The availability and accuracy of reports will depend on the data maintained in the system and the permissions assigned to each user.
+
+
+
+
+
+6. System Workflows and Step-by-Step Flowcharts
+The following flowcharts show the expected steps for the main activities in Mentor360. These workflows should be reviewed with SVIT and Zetacoding and updated to match the actual college procedures wherever necessary.
+6.1 Student onboarding and mentor allocation
+The administrator sets up the academic structure, imports student and faculty records, corrects errors, and confirms the data. The coordinator assigns proctors to students, and the system stores the allocation history and makes student profiles available to authorized users.
+
+
+6.2 Mentoring meeting and follow-up
+A mentor opens an assigned student record, schedules a meeting and records attendance and permitted notes. If the meeting identifies a concern, the mentor creates or links an issue and defines the next action, owner and due date. Follow-up continues until the issue is resolved or escalated.
+
+
+6.3 Academic data import and review
+An authorized user uploads the file using the approved template. The system checks for errors and duplicates. The user corrects the errors or confirms the data. The system saves the records and updates summaries. Authorized staff review the results and decide if any action is needed.
+
+6.4 Student concern and intervention 
+A concern can arise from mentoring or a permitted academic/attendance review. Authorized staff assess the available evidence and decide whether an intervention is needed. If so, an action plan is assigned, tracked and reviewed at follow-up. The concern is closed with an outcome or kept open for additional action.
+
+
+
+6.5 Confidential counselling
+An counsellor with permission opens a permitted case, verifies access and records the session. The system protects the saved record with restricted permissions. General profiles and reports expose only agreed summary fields, if any. Sensitive access and changes are logged according to policy.
+
+
+6.6 Parent communication and notification
+The proctor or authorized staff shares relevant student progress updates with parents. The system sends notifications about important updates or meetings. Communication records are maintained, and access is limited to authorized users. 
+
+6.7 Sign-in and access control
+The user signs in and the system validates the account. After authentication, each request is checked against the user's role, institution/tenant scope, relationship to the record and specific permission. The server allows or denies the request; protected actions are logged when required.
+
+
+
+
+7. Working / System Architecture
+7.1 System Architecture Overview
+Mentor360 shall be implemented as a web-based application designed to integrate student information management, academic monitoring, proctor allocation, mentoring, student development, counselling, parent communication, and institutional reporting within a centralized platform.
+The system shall follow a layered architecture comprising the presentation layer, application layer, data layer, and supporting services. Users shall access the application through a web browser and authenticate using the approved authentication mechanism. Access to system functionalities and information shall be governed by user roles, institutional boundaries, and applicable access permissions.
+The presentation layer shall provide role-specific interfaces for administrators, faculty members, proctors, students, parents or guardians, counsellors, and other authorized institutional personnel. The application layer shall process requests, validate input, enforce business rules, perform authorization checks, and coordinate communication with the data layer and supporting services.
+The data layer shall maintain structured institutional, academic, mentoring, and student-development information. Supporting services shall facilitate file storage, notifications, and report generation where these capabilities are included in the approved implementation.
+The architecture shall ensure data consistency, maintainability, security, and scalability while supporting the operational requirements of Mentor360 and its intended multi-institution deployment.
+
+7.2 Main Components of the System
+7.2.1 User Interface Layer (Frontend)
+The user interface layer shall provide the screens, dashboards, forms, and navigation elements required to access Mentor360 functionalities. The interface shall adapt to the authenticated user's role and authorized organizational scope.
+The frontend shall support student registration, academic information viewing, proctor allocation, mentoring record management, follow-up tracking, student development management, parent communication, and report access, as applicable to the user's permissions.
+The interface shall perform appropriate input validation and display system responses, validation errors, and access-denied messages. However, frontend validation shall not replace backend validation or authorization.
+7.2.2 Application Layer (Backend)
+The application layer shall implement the core business logic and coordinate communication between the frontend, database, and supporting services.
+Its responsibilities shall include:
+Authentication and authorization enforcement.
+User, student, faculty, and guardian record management.
+Student–proctor allocation and allocation-history maintenance.
+Academic data import, validation, processing, and retrieval.
+Mentoring meeting, concern, intervention, and follow-up management.
+Student development and achievement record management.
+Parent communication and notification processing.
+Dashboard generation, report processing, and authorized data export.
+Audit logging and enforcement of institutional data boundaries.
+All operations involving protected information shall be authorized by the backend before the requested action is executed or the information is returned.
+7.2.3 Database Layer
+The database layer shall store and maintain the structured information required by Mentor360. It shall include institutional and academic structures, user accounts, student and faculty records, guardian relationships, proctor allocations, academic results, attendance, mentoring activities, interventions, and reporting metadata.
+The database shall enforce appropriate primary-key, foreign-key, uniqueness, and validation constraints to preserve data integrity. Relationships between records shall enable the retrieval of relevant information associated with a student's digital profile.
+Historical records shall be retained where required by institutional policy, particularly for proctor allocations, academic corrections, and other significant administrative changes.
+7.2.4 File Storage and Notification Services
+The system shall support controlled storage and retrieval of approved files, including academic spreadsheets, student documents, and other authorized attachments, where applicable.
+File access shall be restricted according to user permissions and institutional ownership. Uploaded files shall not be made publicly accessible by default.
+The system may integrate email, SMS, or other approved notification services for institutional communications, alerts, and workflow updates. Notification providers, delivery mechanisms, and supported notification events shall be determined during implementation planning.
+7.3 System Architecture Flow
+The system shall process user requests through the following logical sequence:
+The user accesses Mentor360 through the web interface.
+The authentication mechanism verifies the user's identity and account status.
+The backend validates the request and checks the user's role, institutional scope, and permissions.
+Unauthorized requests are rejected without disclosing protected information.
+Authorized requests are processed according to the applicable business rules.
+The backend interacts with the database and, where required, the file storage or notification services.
+The system returns only the information and operation results permitted for the authenticated user.
+Figure 7.1: Logical System Architecture
+
+The architecture shall enforce authentication and authorization controls before protected operations are executed. All responses shall comply with the applicable role-based and institution-level access restrictions.
+7.4 Proposed Technology Stack
+The following technologies constitute the proposed technology stack for Mentor360. Final technology selection shall be subject to technical evaluation and approval by the responsible development team.
+
+<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="1643"/><w:gridCol w:w="4129"/><w:gridCol w:w="3924"/></w:tblGrid><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="6CEE1CE8" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Component
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Proposed Technology
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Purpose
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="759C88AD" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Frontend
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>React with TypeScript
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Development of interactive, role-specific user interfaces
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="56454659" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Backend
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Node.js with NestJS or Express
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Implementation of application logic and APIs
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="792E3028" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Database
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>PostgreSQL
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Storage and management of structured relational data
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="0FD3A568" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>File Storage
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>S3-compatible object storage or an approved equivalent
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Controlled storage of uploaded files and documents
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="62D31AB9" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Authentication
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Secure session-based or approved token-based authentication
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>User identity verification and session management
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="000968AD" w14:paraId="6D5E57BA" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Hosting
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Approved cloud infrastructure or institutional hosting
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Application deployment and operational availability
+</w:tc></w:tr></w:tbl>The selected technologies, versions, deployment configuration, and integration requirements shall be documented in the technical design specification.
+7.5 Multi-Institution Software-as-a-Service Architecture
+Mentor360 shall support a multi-institution deployment model in which multiple institutions use a common application platform while maintaining logical separation of their respective data and administrative functions.
+Each institution shall be associated with a unique institutional identifier. Institution-owned records, including student profiles, academic records, mentoring information, uploaded files, and reports, shall be associated with the appropriate institutional scope.
+The system shall prevent users from accessing information belonging to institutions outside their authorized scope. These restrictions shall apply consistently to application APIs, database operations, file retrieval, notifications, dashboards, reports, and data exports.
+The database isolation strategy may use shared tables with tenant identifiers, separate database schemas, or separate databases. The selected strategy shall be documented and shall provide appropriate protection against cross-institution data access.
+Platform-level administrative access shall be governed by explicitly defined permissions, and access to institutional data shall be limited to authorized operational requirements.
+
+8. Database Design and Core Entities
+8.1 Introduction
+The Mentor360 database shall provide centralized, structured storage for institutional information, student profiles, academic performance, proctor allocations, mentoring activities, interventions, student development, parent communication, and administrative reporting.
+The database design shall support the information requirements of the SVIT Proctor Book and other approved institutional workflows. Academic records shall include first Internal Assessment (IA) marks, second IA marks, calculated average IA marks out of 50, and VTU examination marks, subject to confirmation of the applicable assessment structure and calculation rules.
+The database shall maintain relationships between students, academic periods, examinations, faculty members, guardians, mentoring activities, and other relevant records. The final schema shall define the table structures, attributes, data types, primary keys, foreign keys, constraints, indexes, and retention requirements during detailed technical design.
+8.2 Core Database Entities
+8.2.1 Institution and Academic Structure
+The institutional and academic structure shall organize records according to the institution's administrative and academic hierarchy.
+Institution / Tenant: Stores institutional identification, configuration, and tenant-specific settings.
+Department: Stores department details and links each department to its institution.
+Programme: Maintains programme, course, or degree information.
+Academic Year: Represents the academic year associated with institutional activities.
+Semester: Identifies the relevant academic semester.
+Section: Organizes students into approved academic sections.
+Batch: Identifies a student cohort based on the applicable admission or academic grouping criteria.
+These entities shall establish the organizational context required for student enrollment, academic monitoring, proctor allocation, and institutional reporting.
+8.2.2 User and Access Management
+The user and access-management entities shall maintain account information, authorization assignments, and records of significant system activities.
+User: Stores account identifiers, authentication references, account status, and other approved account metadata.
+Role: Defines the system roles available within the application.
+Permission: Defines authorized actions on system resources.
+User Role: Associates users with one or more approved roles.
+Audit Log: Records significant system activities, administrative changes, and security-relevant events.
+Role assignments and permissions shall be enforced by the application backend. Authentication secrets shall not be stored in plain text.
+8.2.3 Student, Faculty, and Guardian Records
+These entities shall maintain the primary people-related records required by Mentor360.
+Student: Stores the student's institutional identifier, name, department association, and other approved personal and academic attributes.
+Faculty: Stores faculty identification, department association, employment status, and other approved faculty details.
+Guardian: Stores authorized parent or guardian identification and contact information.
+Student Guardian: Establishes the relationship between a student and one or more verified guardians.
+Student Enrollment: Maintains the student's academic-year, programme, semester, batch, and section associations.
+Student Document: Stores document metadata, secure file references, document categories, and applicable access restrictions.
+The Student entity shall serve as the principal reference for the student's digital profile. Enrollment records shall support academic progression and changes in a student's academic placement over time.
+8.2.4 Proctor Allocation
+The proctor-allocation entities shall manage the assignment of students to faculty members responsible for mentoring and monitoring.
+Proctor Group: Represents a group of students assigned for mentoring, where group-based allocation is applicable.
+Proctor Group Member: Associates students with the corresponding proctor group.
+Proctor Allocation: Records the student, assigned faculty member, applicable academic period, allocation date, status, and other approved allocation details.
+The database shall preserve previous proctor allocations when assignments change. Historical records shall support the review of allocation changes and the identification of the faculty member responsible for mentoring during a particular period.
+8.2.5 Mentoring and Follow-up
+The mentoring entities shall maintain records of meetings, observations, student concerns, planned interventions, and subsequent actions.
+Meeting: Stores meeting date, purpose, status, and other approved meeting details.
+Meeting Participant: Associates meetings with participating students and faculty members.
+Meeting Note: Stores mentoring observations and discussion notes according to the applicable confidentiality classification.
+Meeting Attendance: Records participant attendance where required.
+Student Issue: Records identified academic, attendance-related, or other approved student concerns.
+Action Plan: Defines the intervention or support plan established for a student concern.
+Action Task: Stores individual tasks, responsible persons, deadlines, and task status.
+Follow-up: Records progress updates, review dates, and intervention outcomes.
+Meeting notes and concerns shall be accessible only to authorized users. Confidential counselling information shall be maintained separately from general mentoring information or protected through independently enforced access restrictions.
+8.2.6 Academic Records
+The academic-record entities shall support the storage, validation, and retrieval of student academic information.
+Academic Period: Identifies the relevant academic year, semester, and assessment period.
+Attendance Record: Stores attendance information associated with a student and the applicable academic context.
+Examination: Identifies an assessment or examination, including its type, maximum marks, date, and academic-period association where applicable.
+Mark Record: Stores student marks linked to the corresponding examination and academic period.
+Result Summary: Maintains approved result summaries, including SGPA and CGPA where applicable.
+Import Job: Records the details and status of each academic-data import operation.
+Import Row Error: Records row-level validation failures and the corresponding error descriptions.
+The academic schema shall distinguish between first IA marks, second IA marks, the calculated average IA marks out of 50, and VTU examination marks. The precise calculation rules, source formats, and interpretation of assessment values shall be confirmed with SVIT before implementation.
+Missing, unavailable, and not-yet-entered marks shall be distinguishable from a valid score of zero. The database shall preserve the source and relevant assessment context of imported academic records.
+8.2.7 Counselling and Student Development
+These entities shall support authorized counselling workflows and the recording of student goals, skills, achievements, and professional development.
+Counselling Session: Stores approved session metadata, including the relevant student, authorized counsellor, date, and status.
+Confidential Note: Stores restricted counselling information subject to separate access controls.
+Counselling Access Log: Records designated access events involving confidential counselling information, where required.
+Student Goal: Stores approved academic, personal-development, or career-development goals.
+Skill: Maintains the institution's approved skill categories.
+Student Skill: Associates a student with recorded skills and relevant proficiency information where applicable.
+Certificate: Maintains certificate metadata and secure document references.
+Achievement: Records approved academic, extracurricular, or other achievements.
+Activity: Stores approved student participation in institutional or developmental activities.
+Internship: Records internship details and related professional-development information.
+Confidential counselling records shall not be exposed through general student profiles, mentoring dashboards, parent views, or routine reports unless specifically authorized under the approved access policy.
+8.2.8 Parent Communication and Reporting
+These entities shall support controlled communication with parents or guardians and the generation of institutional reports.
+Parent Communication: Records authorized communication between institutional personnel and verified parents or guardians.
+Notification Rule: Defines approved notification conditions and triggering events.
+Notification: Stores notification metadata, recipients, content references, and status.
+Notification Delivery: Records delivery attempts and delivery status where supported by the selected provider.
+Report Definition: Stores approved report configurations and relevant reporting metadata.
+Export Job: Records authorized data-export requests, execution status, and related audit information.
+Communication records shall be associated with the relevant student and recipient. Notification and export operations shall follow the same access restrictions and privacy requirements as the underlying information.
+8.3 Key Database Relationships
+The database shall establish the following relationships:
+One institution may contain multiple departments, programmes, batches, and academic years.
+One department may be associated with multiple faculty members and students.
+One student may have multiple enrollment records, academic records, mentoring meetings, concerns, and follow-up records.
+One faculty member may be assigned to multiple students as a proctor, subject to the approved allocation rules.
+One student may be associated with multiple guardians through verified student–guardian relationships.
+A student may have multiple proctor-allocation records over time, with each record representing an assignment for the applicable period.
+One student concern may have multiple action plans, and each action plan may contain multiple action tasks.
+One student may have multiple attendance records, assessment records, and examination results.
+One mentoring meeting may involve multiple participants and may have associated notes and attendance records.
+Parent communication records shall reference the relevant student and authorized recipient.
+Counselling records shall be associated with the relevant student and authorized counsellor, with confidentiality restrictions enforced independently.
+Academic records, mentoring records, uploaded files, and report metadata shall be associated with the appropriate institution and applicable academic context.
+These relationships shall be implemented using appropriate relational constraints and shall be refined during detailed database design.
+8.4 Data Integrity, Validation, and History
+The database shall maintain data integrity through primary keys, foreign keys, uniqueness constraints, mandatory-field validation, and appropriate domain constraints.
+The system shall validate student identifiers, institutional associations, assessment values, academic-period references, and duplicate records before accepting new or imported data. Invalid relationships and unauthorized cross-institution associations shall be rejected.
+Academic marks shall be validated against the applicable assessment maximums and approved calculation rules. Missing marks shall not be converted to zero unless an explicit institutional rule requires that interpretation.
+Significant changes to student information, academic records, and proctor allocations shall retain appropriate historical information in accordance with institutional requirements. Import operations shall maintain execution status and validation errors to support review and correction.
+Record correction, archival, retention, and deletion procedures shall follow the approved institutional policy and applicable legal requirements. Sensitive information shall be handled according to its assigned access classification.
+
+9. Module Relationships and Data Flow
+9.1 Overview
+Mentor360 shall integrate its functional modules through shared student, faculty, guardian, institutional, and academic records. Each module shall access relevant information through defined relationships rather than maintaining disconnected copies of the same records.
+The student's digital profile shall serve as the central reference point for authorized academic information, proctor allocation, mentoring activities, follow-up actions, and student-development records.
+Module interactions shall be governed by defined business rules and access permissions. The availability of information in one module shall not automatically authorize its disclosure through another module.
+9.2 End-to-End Data Flow
+9.2.1 Academic Setup and User Management
+The institution administrator shall configure the approved academic structure, including departments, programmes, academic years, semesters, batches, and sections. User accounts and role assignments shall be established according to institutional requirements.
+The system shall validate the configured information and maintain the organizational relationships required for subsequent student registration and academic operations.
+9.2.2 Student Registration and Proctor Allocation
+Student and faculty records shall be created or imported through approved data-entry and import processes. The system shall validate mandatory fields, institutional identifiers, and relevant academic associations before accepting records.
+The Proctor Coordinator or another authorized user shall assign students to designated proctors. Each allocation shall be associated with the relevant academic period, and previous allocations shall be retained according to the approved history policy.
+9.2.3 Student Profile and Academic Monitoring
+The system shall consolidate authorized information associated with each student's digital profile. Depending on the availability and authorization of the underlying data, this information may include enrollment details, IA marks, average IA marks out of 50, VTU examination marks, attendance, and result summaries.
+Academic records shall be linked to the relevant student, assessment, and academic period. Validation and calculation rules shall be applied consistently during manual entry, import, and report generation.
+9.2.4 Mentoring and Student Support
+Authorized proctors shall access assigned student profiles and record mentoring activities in accordance with their permissions. Where a concern is identified, an authorized user may create a student issue, establish an action plan, assign tasks, and record follow-up progress.
+The system shall maintain the relationship between the concern, intervention, responsible personnel, and outcome to support continuity of student mentoring.
+9.2.5 Counselling and Parent Communication
+Counselling activities shall be managed by authorized counsellors under separate access restrictions. Confidential counselling notes shall remain inaccessible to users without explicit authorization.
+Parent communication shall use verified student–guardian relationships and shall disclose only information approved for the recipient's access level. The system shall retain relevant communication metadata and delivery status where supported.
+9.2.6 Student Development
+The system shall maintain approved records of student goals, skills, certificates, achievements, activities, and internships. These records shall be associated with the relevant student and shall be available only to users authorized to view or manage them.
+9.2.7 Dashboards and Reports
+The reporting module shall retrieve relevant information from academic, mentoring, follow-up, and student-development modules to generate authorized dashboards and reports.
+Report content shall be determined by the user's role, institutional scope, and permissions. Confidential counselling information and other restricted records shall be excluded from general reporting unless explicit authorization has been established.
+9.3 Data Flow Diagram
+Figure 9.1: Logical Module Data Flow
+
+The diagram represents the logical relationships and information flow between the primary modules. All data retrieval and reporting operations shall remain subject to the applicable authorization and confidentiality requirements.
+9.4 Example of Module Interaction
+When a student's internal assessment marks indicate a decline in academic performance, an authorized proctor shall be able to review the student's available academic records within the permitted scope.
+Where additional support is required, the proctor may record a concern and establish an appropriate follow-up action. Subsequent mentoring meetings may be used to update progress, document the outcome, or identify further intervention requirements.
+The system may reflect the status of the concern and its follow-up activities in authorized dashboards and reports. Information shared with a parent or guardian shall be limited to the information approved under the institution's communication policy and the recipient's permissions.
+This interaction shall maintain traceability between academic monitoring, mentoring, intervention, and follow-up activities without duplicating the underlying student records.
+9.5 Data Flow and Validation Requirements
+The system shall enforce the following requirements across all modules:
+Every institutional record shall be associated with the correct institution and applicable academic context.
+Student identifiers, assessment references, academic marks, and attendance data shall be validated before storage or import.
+Missing academic values shall remain distinguishable from actual zero scores.
+Changes in proctor allocation shall preserve the required allocation history.
+Module interfaces, APIs, dashboards, and reports shall enforce the same authorization rules.
+Confidential counselling information shall not be included in general notifications, dashboards, or exports without explicit authorization.
+Imported data shall be validated, and import status and errors shall be recorded.
+Changes to important records shall be traceable according to the approved audit and retention policies.
+Information shared between modules shall be limited to the minimum information required for the authorized operation.
+
+10. Authentication, Access Control, and Privacy
+10.1 Authentication
+Mentor360 shall authenticate users before permitting access to protected application functionality. The authentication mechanism shall verify the submitted credentials or approved identity-provider response and confirm that the account is active.
+Upon successful authentication, the system shall establish a secure session or issue an approved authentication token. Subsequent requests to protected resources shall be validated according to the selected authentication architecture.
+The authentication mechanism shall satisfy the following requirements:
+Passwords shall be stored using an appropriate, secure password-hashing algorithm and shall never be stored in plain text.
+Authentication traffic shall be protected using HTTPS/TLS.
+Sessions or authentication tokens shall follow the approved expiry, renewal, and invalidation policies.
+Account recovery and password-reset procedures shall verify the user's authorization before allowing credential changes.
+Authentication endpoints shall incorporate appropriate controls against repeated unauthorized attempts.
+Disabled, suspended, or otherwise inactive accounts shall not be permitted to access protected resources.
+Authentication errors shall not disclose unnecessary account or credential information.
+The system shall support single sign-on (SSO) if required and approved during implementation planning.
+The final authentication method, password policy, session-management configuration, and account-recovery procedure shall be documented in the technical design.
+10.2 Role-Based Access Control
+Mentor360 shall implement role-based access control (RBAC) to restrict application functionality and information according to assigned responsibilities.
+Access decisions shall consider the user's assigned role, institutional scope, relationship with the relevant student, and the sensitivity of the requested information. Role assignment alone shall not grant unrestricted access to all records within the system.
+The following roles represent the proposed access categories:
+<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="2541"/><w:gridCol w:w="7155"/></w:tblGrid><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="768A2D8F" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Role
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>General Access Scope
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="2389623C" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Super Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Platform-level configuration and institution management, subject to approved platform permissions
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="20DCD02E" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>University Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Authorized administration and monitoring within the assigned university scope
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="56A49E3F" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Institution Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Institutional configuration, user management, and approved institutional records
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="140A8E3D" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Principal / Director
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Institutional monitoring and reports permitted by the approved role matrix
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="2236EE73" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Dean
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Authorized academic monitoring and administrative information within the assigned scope
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="58CF3046" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>HOD
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Department-level academic and student information within the approved scope
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="22D0CDCE" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Proctor Coordinator
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Proctor allocation and associated mentoring administration
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="60A31148" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Faculty / Proctor / Mentor
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Assigned student records and permitted mentoring activities
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="26D3A819" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Student
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Personal profile and approved academic and developmental information
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="10E2E48E" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Parent / Guardian
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Approved information associated with verified linked students
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="4F12CB49" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Counsellor
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Specifically authorized counselling records and related activities
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="6A201226" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Placement Officer
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Authorized placement, internship, and career-development information
+</w:tc></w:tr><w:tr w:rsidR="00574326" w:rsidRPr="00332649" w14:paraId="1C628FC4" w14:textId="77777777" w:rsidTr="001466B9"><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>IQAC / Accreditation Admin
+</w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/><w:hideMark/></w:tcPr>Approved quality-assurance records and accreditation-related reports
+</w:tc></w:tr></w:tbl>The final role-permission matrix shall specify the permitted operations for each role, including view, create, update, approve, delete, export, and administrative actions where applicable. The matrix shall be reviewed and approved before implementation.
+10.3 Authorization and Permission Enforcement
+The backend shall enforce authorization checks for every protected operation. These checks shall apply to record retrieval, creation, modification, deletion, file access, report generation, and data export.
+The system shall verify that the authenticated user is authorized to access the requested resource and that the resource belongs to an institution and organizational scope within the user's permissions.
+The following requirements shall apply:
+Access restrictions shall be enforced by the backend and shall not depend solely on frontend navigation or hidden interface elements.
+Requests involving records outside the user's authorized scope shall be rejected.
+Direct access to a record through a URL, API endpoint, identifier, or file reference shall not bypass authorization checks.
+Access restrictions shall be applied consistently to database queries, uploaded files, dashboards, notifications, reports, and exports.
+Sensitive operations shall require the appropriate permissions and shall be recorded in audit logs where applicable.
+Privileged administrative access shall be limited to explicitly authorized functions.
+Authorization shall be evaluated using the current permissions and applicable institutional relationships.
+For example, a faculty member shall not be able to retrieve another student's restricted profile merely by supplying that student's identifier. The backend shall verify the faculty member's authorized relationship with the student before returning any protected information.
+10.4 Privacy and Sensitive Information Protection
+Mentor360 shall protect personal, academic, mentoring, and counselling information against unauthorized access, modification, disclosure, and loss.
+The system shall apply data-minimization principles and collect only the information required for approved institutional purposes. Access to personal and sensitive records shall be restricted according to their classification and the approved role-permission matrix.
+The following requirements shall apply:
+Student and guardian information shall be accessible only to authorized users for approved purposes.
+Student-facing and parent-facing interfaces shall display only the fields approved for their respective access levels.
+General mentoring notes and confidential counselling notes shall be subject to distinct access controls.
+Uploaded documents shall be stored securely and shall not be accessible through unrestricted public links by default.
+Sensitive downloads and bulk data exports shall be restricted to authorized roles.
+Audit records shall be maintained for designated administrative and security-relevant activities.
+Data retention, archival, correction, and deletion shall follow approved institutional policies and applicable legal requirements.
+Parent or guardian access shall depend on a verified relationship and the institution's approved information-sharing rules.
+Notifications shall not disclose confidential academic, mentoring, or counselling information to unauthorized recipients.
+Institutional records shall remain isolated from other institutions in the multi-tenant deployment.
+The system shall apply appropriate technical and organizational safeguards to protect information throughout its collection, storage, processing, transmission, and disposal.
+10.5 Audit Logging
+Mentor360 shall maintain audit logs for significant administrative, academic, and security-related activities to support accountability, traceability, and incident investigation.
+Audit records shall capture the relevant user or service identity, action performed, date and time, affected record or resource where applicable, and the outcome of the operation.
+The audit logging mechanism shall cover the following activities, as applicable:
+Creation, modification, disabling, and removal of user accounts.
+Changes to role assignments and permissions.
+Creation and modification of student and faculty records.
+Changes to proctor allocation and allocation history.
+Academic-data imports, corrections, and significant record modifications.
+Access to designated restricted records.
+Generation and export of sensitive reports.
+Changes to institutional configuration and security settings.
+Relevant authentication and authorization events.
+Audit logs shall be protected against unauthorized access and modification. Access to audit records shall itself be restricted and monitored according to the approved security policy.
+General audit messages shall not contain confidential counselling text, passwords, authentication tokens, or other unnecessary sensitive information. Audit retention periods and review procedures shall be defined during implementation planning.
+10.6 Security and Privacy Decisions Requiring Approval
+The following security and privacy requirements shall be finalized and documented before production deployment:
+Approved authentication mechanism, password policy, account recovery, and session-management rules.
+Requirements for single sign-on and any external identity-provider integration.
+Final role-permission matrix and organizational access boundaries.
+Information accessible to students and parents, including restrictions on mentoring notes and academic concerns.
+Authorized procedures for creating, updating, closing, and escalating student concerns.
+Access rules for counselling-session metadata and confidential notes.
+Guardian verification requirements and applicable consent procedures.
+Institutional data-retention, archival, correction, and deletion policies.
+Audit-log retention, monitoring, and access-review procedures.
+Procedures for security incident reporting, investigation, and response.
+Conditions governing platform-support personnel access to institutional data.
+Data-isolation requirements for the multi-institution deployment.
+The approved decisions shall be incorporated into the detailed technical design, access-control configuration, and operational security procedures. The system shall not be considered ready for production until the applicable security and privacy requirements have been reviewed and approved by the responsible stakeholders.
+
+11. Functional and Non-Functional Requirements
+11.1 Functional requirements
+Functional requirements define the operations and services that the Mentor360 system must provide. The system shall support the following functions:
+The system shall support the creation and maintenance of institution, academic, user, student, faculty, and guardian records.
+The system shall support student-to-mentor allocation and maintain allocation history.
+The system shall support meeting scheduling, meeting records, student concerns, action plans, tasks, and follow-up activities.
+The system shall support approved academic and attendance data imports and display validation errors before confirmation.
+The system shall protect counselling records through separately enforced access permissions.
+The system shall support approved parent communication, restricted parent views, and notification history.
+The system shall provide role-based dashboards, approved reports, and controlled data exports.
+The system shall record important security events and data changes according to the approved audit policy.
+11.2 Non-Functional Requirements
+Non-functional requirements define the quality, security, performance, and reliability standards that Mentor360 must satisfy. The following requirements shall be considered during system design, development, and testing.
+Security: The system shall enforce backend authorization, institution-level data isolation, secure communication, protected credentials, and restricted access to sensitive records.
+Privacy: The system shall follow approved policies for data minimization, consent, information visibility, retention, and deletion.
+Usability: The interface shall provide clear labels, consistent navigation, understandable validation messages, and simple workflows suitable for non-technical users.
+Performance: Common screens, searches, data updates, and reports shall meet response-time targets agreed upon by the institution and development team for the expected data volume.
+Reliability: The system shall handle expected failures safely, prevent silent data loss, and provide clear outcomes for data imports and notifications.
+Data Integrity: Database keys, constraints, and validation rules shall be used to prevent invalid relationships, duplicate records, and inconsistent academic data.
+Auditability: The system shall record the responsible user, timestamp, and action for important changes, imports, sensitive access events, and exports where required.
+Maintainability: The application shall use modular code, documented APIs, configurable rules, and repeatable deployment procedures to simplify future maintenance.
+Compatibility: The system shall support the agreed browsers and devices and provide a responsive web interface.
+Backup and Recovery: Backup frequency, retention periods, recovery time objectives, and recovery point objectives shall be defined and approved before production deployment.
+Scalability: The system shall be designed to support additional users, academic periods, and institutions without exposing data across institutional boundaries.
+Accessibility: The interface shall provide readable text, meaningful labels, keyboard-operable controls, and clear error feedback. The formal accessibility target shall be confirmed.
+Specific performance, availability, backup, and recovery targets must be agreed upon and documented before final testing.
+12. Reports, Imports and Historical Migration
+12.1 Dashboard and Report Catalogue
+Mentor360 shall provide dashboards and reports to help authorized users monitor student progress, mentoring activities, academic performance, and student development. The proposed reports include:
+Proctor allocation and mentor-wise student lists.
+Student-wise mentoring records and meeting history.
+Meeting schedules, attendance, and completion summaries.
+Pending, overdue, and completed action plans and follow-ups.
+Attendance shortages and attendance trends.
+Marks, examination results, SGPA/CGPA, and backlog summaries, wherever the relevant data is available.
+Student concern and risk lists, including status and permitted reasons.
+Parent communication history and interaction summaries.
+Student goals, skills, certificates, achievements, activities, and internship summaries.
+Intervention outcomes and student development summaries.
+PDF, Excel, and CSV export formats may be supported for the agreed report types. Report definitions, calculation formulas, filters, institutional branding, data masking, and export permissions shall be reviewed and approved before acceptance.
+12.2 Import Process
+The system shall provide a structured process for importing approved academic, attendance, and other agreed records using Excel or CSV templates.
+The import process shall include the following steps:
+The authorized user shall select the import type and use the approved Excel or CSV template.
+The user shall upload the file for validation.
+The system shall validate the file format, required columns, data types, identifiers, duplicate records, and relationships.
+The system shall display an import preview showing the number of valid and invalid rows, along with row-level error details.
+The user shall be allowed to correct errors or confirm the import according to the approved partial-import policy.
+The system shall save the approved data safely and record the importing user, timestamp, and import outcome.
+The system shall provide import history and error reports to authorized users.
+The import process shall ensure that invalid or inconsistent records are identified before confirmation and that import results can be reviewed later.
+12.3 Historical Paper-File Migration
+Mentor360 shall support the digitization of selected historical student and academic records maintained in paper-based files. The institution shall determine which academic years and categories of historical records are included in the migration scope.
+The selected records shall be entered using an approved template, validated for accuracy and completeness, and linked to the correct student and academic period. Sample records shall be checked to verify that the migrated information matches the original paper documents.
+The migration shall be considered complete only after the agreed scope and verification process have been satisfied. The system documentation shall clearly identify the records included in the migration and shall not imply that all historical paper records have been digitized unless this has been verified.
+13. Implementation Phases, Testing and Acceptance
+The Mentor360 platform is proposed to be developed in stages. Each phase focuses on a group of related features, allowing the team to test and verify them before proceeding. The sequence may be adjusted based on project priorities and dependencies.
+Phase 1 — Foundation: Institution configuration, user management, login, student/faculty/guardian records and access control.
+Phase 2 — Digital proctor file: Student profiles, proctor allocation, group management, meeting scheduling and meeting history.
+Phase 3 — Academic monitoring: Attendance, internal assessment marks, examination results, data import validation and academic summaries.
+Phase 4 — Student success workflows: Student concerns, action plans, tasks, follow-ups and restricted counselling records.
+Phase 5 — Engagement and development: Parent access, communication history, notifications, student goals, skills and achievements.
+Phase 6 — Reporting and hardening: Dashboards, reports, exports, audit review, historical data verification, security and performance testing.
+13.1 Testing approach
+Unit testing for data validation, calculations, permissions and workflow logic.
+Integration testing for the user interface, APIs, database, file storage, imports and notifications.
+Role-based access and institution-level data separation testing.
+End-to-end testing of student registration, proctor allocation, mentoring, intervention, counselling and parent communication.
+Import testing with valid, invalid, duplicate, incomplete and large files.
+Report verification against the underlying records.
+Privacy testing to ensure confidential information is not visible to unauthorized users.
+User acceptance testing with representative administrators, proctors, students and parents.
+13.2 Acceptance criteria
+The system shall be considered ready for acceptance when the following agreed criteria are met:
+All 11 modules and the approved project scope are implemented and demonstrated.
+Users can access only the features and records permitted by their roles.
+Student registration, proctor allocation, mentoring and follow-up workflows function correctly.
+Data imports display validation errors and accurate counts of created, updated, skipped and rejected records.
+Counselling records are protected from unauthorized access.
+Parent access is restricted to verified linked students and approved information.
+Dashboards and reports match the underlying records and follow access permissions.
+Audit records are maintained for agreed important operations.
+Agreed security, privacy, performance and backup/recovery requirements are tested.
+Stakeholders review the test results and approve the system, with any deferred items documented.
+14. Decisions to Confirm Before Final Design
+The system shall be considered ready for acceptance when the following agreed criteria are met:
+All 11 modules and the approved project scope are implemented and demonstrated.
+Users can access only the features and records permitted by their roles.
+Student registration, proctor allocation, mentoring and follow-up workflows function correctly.
+Data imports display validation errors and accurate counts of created, updated, skipped and rejected records.
+Counselling records are protected from unauthorized access.
+Parent access is restricted to verified linked students and approved information.
+Dashboards and reports match the underlying records and follow access permissions.
+Audit records are maintained for agreed important operations.
+Agreed security, privacy, performance and backup/recovery requirements are tested.
+Stakeholders review the test results and approve the system, with any deferred items documented.
+Appendix A. Glossary
+SRS (Software Requirements Specification): A document describing what the system must do and the quality constraints it must meet.
+Proctor / Mentor: A faculty member or assigned staff member responsible for an allocated group of students and their mentoring records.
+Digital Student Success Record: A consolidated view of a student's linked records, displayed according to the user's access permissions.
+Tenant: A separate institution or customer space within a multi-tenant application.
+Authentication: The process of verifying the identity of a person signing in to the system.
+Authorization: The process of checking what an authenticated user is permitted to view or change.
+RBAC (Role-Based Access Control): An access control approach in which permissions are assigned through user roles.
+Audit Log: A record of important system actions, such as changes to records, data imports, and access to sensitive information.
+Entity / Table: A database structure used to store a particular type of record and its fields.
+Functional Requirement: A statement describing a function or operation the system must support.
+Non-Functional Requirement: A statement describing a quality or constraint of the system, such as security, performance, usability, or reliability.
+ER Diagram (Entity-Relationship Diagram): A diagram showing database entities and the relationships between them.
+TBD (To Be Decided): Indicates a detail that requires confirmation before it becomes an agreed requirement.
+Appendix B. Final Hand-off Checklist
+The following items should be reviewed and confirmed by the relevant SVIT stakeholders and Zetacoding team before implementation or final acceptance.
+☐ The 11-module scope and implementation phase plan are approved.
+☐ The role-permission matrix and student/parent visibility rules are agreed upon.
+☐ The flowcharts in Section 6 are reviewed and accepted by SVIT and Zetacoding.
+☐ The system architecture and technology choices are confirmed by the technical team.
+☐ The logical data model is reviewed and converted into an ER diagram and physical database schema.
+☐ Risk thresholds, meeting rules, escalation procedures, and follow-up deadlines are agreed upon.
+☐ Import templates, duplicate-handling rules, and historical data migration scope are agreed upon.
+☐ Notification channels, service providers, consent requirements, and message categories are agreed upon.
+☐ Privacy, counselling access, data retention, and deletion policies are agreed upon.
+☐ Performance, availability, backup, and recovery targets are defined in measurable terms.
+☐ Test scenarios, defect severity levels, and acceptance sign-off responsibilities are assigned.
+☐ Future enhancements, including AI features, external integrations, accreditation automation, and mobile support, are tracked separately from the current scope.
+Source Alignment Note
+This document follows the Mentor360 blueprint and the current 11-module project scope. The workflows, architecture, and database entities are working proposals and must be reviewed with SVIT and Zetacoding before being treated as finalized requirements.
+— End of Document —
+<w:sectPr w:rsidR="00203E4C" w:rsidRPr="00112BDC" w:rsidSect="00034616"><w:headerReference w:type="default" r:id="rId17"/><w:footerReference w:type="default" r:id="rId18"/><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1123" w:right="1267" w:bottom="1037" w:left="1267" w:header="720" w:footer="720" w:gutter="0"/><w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr></w:body></w:document>
