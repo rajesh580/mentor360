@@ -19,7 +19,6 @@ Mentor360 is a multi-tenant student mentoring and academic support platform. The
 
 The frontend runs at `http://localhost:5173` and the API at `http://localhost:5000`. The frontend uses Vite's `/api` proxy locally.
 
-## Production deployment
 
 Deploy the API and built frontend as separate services. Build from the repository root with `npm run build`.
 
