@@ -127,8 +127,8 @@ export default function App() {
     departmentId: '',
     semester: '',
     channel: 'SMS',
-    subject: 'Urgent: Student Attendance Shortage Notification',
-    message: 'Dear Parent, this is an official notification from the Proctoring Office regarding your ward\'s attendance shortage below 75%. Please contact the proctor immediately.',
+    subject: '',
+    message: '',
   });
 
   // Import preview state
@@ -194,11 +194,7 @@ export default function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([
-    { id: '1', title: 'VTU Exam Schedule Announced', message: 'VTU Odd Semester Examination timetable has been uploaded for 2024-25.', time: '10m ago', unread: true },
-    { id: '2', title: 'Attendance Shortage Trigger', message: '4 students in Semester 5 CSE attendance fallen below 75%. Action plan required.', time: '1h ago', unread: true },
-    { id: '3', title: 'Bi-Weekly Mentoring Review', message: 'Cycle review due this Friday for all assigned proctor groups.', time: '3h ago', unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const userRole = currentUser?.roleCode || currentUser?.role_code;
   const isHighAdmin = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL'].includes(userRole);
@@ -440,6 +436,25 @@ export default function App() {
     };
     void loadAnalytics();
   }, [activeTab, token]);
+
+  // Load Notifications
+  useEffect(() => {
+    if (!token) return;
+    const loadNotifications = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/communication/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data);
+        }
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      }
+    };
+    void loadNotifications();
+  }, [token]);
 
   // User Actions
   const handleCreateUser = async (event: React.FormEvent) => {
@@ -866,7 +881,7 @@ export default function App() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                placeholder="principal@svit.edu.in"
+                placeholder="name@institution.edu"
               />
             </div>
             <div>
@@ -891,13 +906,6 @@ export default function App() {
               <LockKeyhole className="h-4 w-4" />{signingIn ? 'Signing in…' : 'Sign in to Workspace'}
             </button>
           </form>
-          <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">
-            <p className="font-semibold text-slate-700">Demo Institution Accounts:</p>
-            <p className="mt-1">Principal / Admin: <code className="text-sky-700">principal@svit.edu.in</code></p>
-            <p>HOD CSE: <code className="text-sky-700">hod.cse@svit.edu.in</code></p>
-            <p>Mentor: <code className="text-sky-700">mentor.ramesh@svit.edu.in</code></p>
-            <p>Password: <code className="text-slate-800">Password@123</code></p>
-          </div>
         </div>
       </div>
     );
@@ -1115,7 +1123,7 @@ export default function App() {
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                {notifications.filter((n) => n.unread).length > 0 && (
+                {notifications.filter((n) => n.unread || n.is_read === false).length > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
                 )}
               </button>
@@ -1126,25 +1134,36 @@ export default function App() {
                     <span className="font-bold text-slate-900 flex items-center gap-1.5">
                       <Bell className="w-3.5 h-3.5 text-sky-600" /> Institutional Notices
                     </span>
-                    <button
-                      onClick={() => {
-                        setNotifications(notifications.map((n) => ({ ...n, unread: false })));
-                      }}
-                      className="text-[10px] text-sky-600 hover:underline font-semibold"
-                    >
-                      Mark all read
-                    </button>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setNotifications(notifications.map((n) => ({ ...n, unread: false, is_read: true })));
+                        }}
+                        className="text-[10px] text-sky-600 hover:underline font-semibold"
+                      >
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
-                    {notifications.map((n) => (
-                      <div key={n.id} className={`p-3 space-y-1 ${n.unread ? 'bg-sky-50/40' : 'bg-white'}`}>
-                        <div className="flex justify-between items-start">
-                          <span className="font-semibold text-slate-900">{n.title}</span>
-                          <span className="text-[10px] text-slate-400">{n.time || 'Today'}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 leading-snug">{n.message}</p>
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400">
+                        <Bell className="w-5 h-5 mx-auto mb-1.5 text-slate-300" />
+                        <p className="text-xs">No notifications at this time.</p>
                       </div>
-                    ))}
+                    ) : (
+                      notifications.map((n) => (
+                        <div key={n.id} className={`p-3 space-y-1 ${n.unread || n.is_read === false ? 'bg-sky-50/40' : 'bg-white'}`}>
+                          <div className="flex justify-between items-start">
+                            <span className="font-semibold text-slate-900">{n.title}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {n.time || (n.created_at ? new Date(n.created_at).toLocaleDateString() : 'Recent')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-snug">{n.message}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1800,7 +1819,7 @@ export default function App() {
                       required
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      placeholder="faculty@svit.edu.in"
+                      placeholder="faculty@institution.edu"
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
                     />
                   </div>
@@ -3005,7 +3024,7 @@ export default function App() {
                   <label className="font-semibold text-slate-700 block mb-1">Student Email</label>
                   <input
                     type="email"
-                    placeholder="rohit.cs@svit.edu.in"
+                    placeholder="student@institution.edu"
                     value={newStudentData.email}
                     onChange={(e) => setNewStudentData({ ...newStudentData, email: e.target.value })}
                     className="w-full p-2 border border-slate-300 rounded-md"
@@ -3202,6 +3221,7 @@ export default function App() {
                 <label className="font-semibold text-slate-700 block mb-1">Subject / Header</label>
                 <input
                   required
+                  placeholder="e.g. Official Notification: Academic Performance Review"
                   value={broadcastData.subject}
                   onChange={(e) => setBroadcastData({ ...broadcastData, subject: e.target.value })}
                   className="w-full p-2 border border-slate-300 rounded-md"
@@ -3213,6 +3233,7 @@ export default function App() {
                 <textarea
                   required
                   rows={4}
+                  placeholder="Enter the official notice or message content to dispatch to parents..."
                   value={broadcastData.message}
                   onChange={(e) => setBroadcastData({ ...broadcastData, message: e.target.value })}
                   className="w-full p-2 border border-slate-300 rounded-md"
