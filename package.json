@@ -1,0 +1,20 @@
+{
+  "name": "mentor360-workspace",
+  "version": "1.0.0",
+  "description": "Mentor360 Multi-Tenant Mentoring, Proctoring & Student Development SaaS Platform",
+  "scripts": {
+    "dev": "concurrently -n \"backend,client\" -c \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
+    "start": "npm run start:server",
+    "start:server": "cd server && npm start",
+    "build": "npm run build:server && npm run build:client",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
