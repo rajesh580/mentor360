@@ -3,6 +3,14 @@ node_modules/
 client/node_modules/
 server/node_modules/
 
+# Local credentials and environment files
+.env
+**/.env
+.env.*
+**/.env.*
+!.env*.example
+!**/.env*.example
+
 # Build artifacts
 dist/
 client/dist/

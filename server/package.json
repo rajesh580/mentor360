@@ -9,7 +9,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "db:migrate": "tsx src/database/migrate.ts",
-    "db:seed": "tsx src/database/seed.ts"
+    "db:seed": "tsx src/database/seed.ts",
+    "db:bootstrap-admin": "tsx src/database/bootstrap-admin.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

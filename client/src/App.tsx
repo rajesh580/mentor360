@@ -26,13 +26,29 @@ import {
   ExternalLink,
   Upload,
   LockKeyhole,
+  UserPlus,
 } from 'lucide-react';
 
 // API base URL configuration: uses Vite proxy in dev (/api) or custom VITE_API_URL
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const USER_ROLE_OPTIONS = [
+  ['UNIVERSITY_ADMIN', 'University administrator'],
+  ['INSTITUTION_ADMIN', 'Institution administrator'],
+  ['PRINCIPAL', 'Principal / Director'],
+  ['DEAN', 'Dean Academics'],
+  ['HOD', 'Head of department'],
+  ['PROCTOR_COORDINATOR', 'Proctor coordinator'],
+  ['PROCTOR', 'Faculty / Proctor / Mentor'],
+  ['COUNSELLOR', 'Counsellor'],
+  ['STUDENT', 'Student'],
+  ['PARENT', 'Parent / Guardian'],
+  ['PLACEMENT_OFFICER', 'Placement officer'],
+  ['IQAC_ADMIN', 'IQAC administrator'],
+  ['SUPER_ADMIN', 'Super administrator'],
+];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'proctors' | 'meetings' | 'interventions' | 'counselling' | 'import'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'proctors' | 'meetings' | 'interventions' | 'counselling' | 'import' | 'users'>('dashboard');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +76,15 @@ export default function App() {
   // Import preview state
   const [importResult, setImportResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [managedUsers, setManagedUsers] = useState<any[]>([]);
+  const [managedInstitutions, setManagedInstitutions] = useState<any[]>([]);
+  const [managedInstitutionId, setManagedInstitutionId] = useState('');
+  const [usersRefresh, setUsersRefresh] = useState(0);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSaving, setUserSaving] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [userNotice, setUserNotice] = useState('');
+  const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', phone: '', roleCode: 'PROCTOR' });
 
   // Restore the user's own session; never sign in with a seeded account automatically.
   useEffect(() => {
@@ -108,6 +133,8 @@ export default function App() {
     localStorage.removeItem('mentor360_token');
     setToken(null);
     setCurrentUser(null);
+    setPassword('');
+    setAuthError('');
     setStats(null);
     setStudents([]);
     setProctors([]);
@@ -138,6 +165,64 @@ export default function App() {
       if (counsellingRes?.ok) setCounsellingSessions(await counsellingRes.json());
     } catch (err) {
       console.error('Error fetching data:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'users' || !token) return;
+    const loadUsers = async () => {
+      setUsersLoading(true);
+      setUserError('');
+      try {
+        const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+        if ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN') {
+          if (!managedInstitutions.length) {
+            const institutionsRes = await fetch(`${API_BASE}/api/users/institutions`, { headers });
+            const institutions = await institutionsRes.json();
+            if (!institutionsRes.ok) throw new Error(institutions.error || 'Could not load institutions.');
+            setManagedInstitutions(institutions);
+            if (institutions[0]?.id) setManagedInstitutionId(institutions[0].id);
+            return;
+          }
+          if (!managedInstitutionId) return;
+          headers['x-institution-id'] = managedInstitutionId;
+        }
+        const response = await fetch(`${API_BASE}/api/users`, { headers });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load users.');
+        setManagedUsers(data);
+      } catch (error: any) {
+        setUserError(error.message || 'Could not connect to the user service.');
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    void loadUsers();
+  }, [activeTab, token, currentUser, managedInstitutionId, managedInstitutions.length, usersRefresh]);
+
+  const handleCreateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token) return;
+    setUserSaving(true);
+    setUserError('');
+    setUserNotice('');
+    try {
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+      if ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN') headers['x-institution-id'] = managedInstitutionId;
+      const response = await fetch(`${API_BASE}/api/users`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(newUser),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not create this account.');
+      setNewUser({ fullName: '', email: '', password: '', phone: '', roleCode: 'PROCTOR' });
+      setUserNotice(`Account created for ${data.user.full_name}. Share the temporary password securely.`);
+      setUsersRefresh((value) => value + 1);
+    } catch (error: any) {
+      setUserError(error.message || 'Could not connect to the user service.');
+    } finally {
+      setUserSaving(false);
     }
   };
 
@@ -288,6 +373,7 @@ export default function App() {
             { id: 'interventions', label: 'Concerns & Interventions', icon: AlertTriangle },
             { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) },
             { id: 'import', label: 'Bulk Marks Import', icon: FileSpreadsheet },
+            { id: 'users', label: 'User Management', icon: UserPlus, restricted: !['INSTITUTION_ADMIN', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) },
           ].map((tab) => {
             const Icon = tab.icon;
             if (tab.restricted) return null;
@@ -310,7 +396,46 @@ export default function App() {
       </div>
 
       {/* Content Area */}
-      <main className="w-full px-6 py-8 flex-1">
+      <main className="w-full p-0 flex-1">
+        {activeTab === 'users' && ['INSTITUTION_ADMIN', 'SUPER_ADMIN'].includes(currentUser.roleCode || currentUser.role_code) && (
+          <section className="space-y-6 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">User management</h1>
+                <p className="mt-1 text-sm text-slate-500">Create sign-in accounts for your institution.</p>
+              </div>
+              {(currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' && (
+                <select aria-label="Institution" value={managedInstitutionId} onChange={(event) => setManagedInstitutionId(event.target.value)} className="min-w-64 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
+                  <option value="">Select an institution</option>
+                  {managedInstitutions.map((institution) => <option key={institution.id} value={institution.id}>{institution.name} ({institution.code})</option>)}
+                </select>
+              )}
+            </div>
+
+            {userError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{userError}</p>}
+            {userNotice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{userNotice}</p>}
+
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+              <form onSubmit={handleCreateUser} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-1">
+                <h2 className="text-base font-bold text-slate-900">Add a user</h2>
+                <div><label htmlFor="new-user-name" className="mb-1 block text-sm font-medium text-slate-700">Full name</label><input id="new-user-name" required minLength={2} maxLength={255} value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+                <div><label htmlFor="new-user-email" className="mb-1 block text-sm font-medium text-slate-700">Email</label><input id="new-user-email" type="email" required autoComplete="off" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+                <div><label htmlFor="new-user-phone" className="mb-1 block text-sm font-medium text-slate-700">Phone <span className="font-normal text-slate-400">(optional)</span></label><input id="new-user-phone" type="tel" value={newUser.phone} onChange={(event) => setNewUser({ ...newUser, phone: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+                <div><label htmlFor="new-user-role" className="mb-1 block text-sm font-medium text-slate-700">Role</label><select id="new-user-role" value={newUser.roleCode} onChange={(event) => setNewUser({ ...newUser, roleCode: event.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">{USER_ROLE_OPTIONS.filter(([code]) => (currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' || !['SUPER_ADMIN', 'UNIVERSITY_ADMIN', 'INSTITUTION_ADMIN'].includes(code)).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></div>
+                <div><label htmlFor="new-user-password" className="mb-1 block text-sm font-medium text-slate-700">Temporary password</label><input id="new-user-password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /><p className="mt-1 text-xs text-slate-500">At least 12 characters. Share it with the user securely.</p></div>
+                <button disabled={userSaving || ((currentUser.roleCode || currentUser.role_code) === 'SUPER_ADMIN' && !managedInstitutionId)} type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"><UserPlus className="h-4 w-4" />{userSaving ? 'Creating account…' : 'Create account'}</button>
+              </form>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+                <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-bold text-slate-900">Institution accounts</h2><span className="text-xs text-slate-500">{managedUsers.length} users</span></div>
+                {usersLoading ? <p className="py-8 text-center text-sm text-slate-500">Loading accounts…</p> : managedUsers.length ? (
+                  <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><th className="pb-3 pr-4">Name</th><th className="pb-3 pr-4">Email</th><th className="pb-3 pr-4">Role</th><th className="pb-3">Status</th></tr></thead><tbody>{managedUsers.map((user) => <tr key={user.id} className="border-b border-slate-100 last:border-0"><td className="py-3 pr-4 font-medium text-slate-800">{user.full_name}</td><td className="py-3 pr-4 text-slate-600">{user.email}</td><td className="py-3 pr-4 text-slate-600">{user.role_code.replaceAll('_', ' ')}</td><td className="py-3"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{user.status}</span></td></tr>)}</tbody></table></div>
+                ) : <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">No accounts found for this institution.</p>}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 // Import module routes
 import authRoutes from './modules/auth/auth.routes.js';
+import userRoutes from './modules/users/user.routes.js';
 import institutionRoutes from './modules/institution/institution.routes.js';
 import studentRoutes from './modules/students/student.routes.js';
 import proctorRoutes from './modules/proctor/proctor.routes.js';
@@ -46,6 +47,7 @@ export const createApp = (): Express => {
 
   // API V1 Routes (Model / Module-wise)
   app.use('/api/auth', authRoutes);
+  app.use('/api/users', userRoutes);
   app.use('/api/institution', institutionRoutes);
   app.use('/api/students', studentRoutes);
   app.use('/api/proctors', proctorRoutes);

@@ -11,6 +11,7 @@
     "dev:client": "cd client && npm run dev",
     "db:migrate": "cd server && npm run db:migrate",
     "db:seed": "cd server && npm run db:seed",
+    "db:bootstrap-admin": "cd server && npm run db:bootstrap-admin",
     "build:server": "cd server && npm run build",
     "build:client": "cd client && npm run build"
   },
