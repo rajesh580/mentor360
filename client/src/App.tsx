@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Users,
   GraduationCap,
@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   ShieldCheck,
   Award,
+  ChevronLeft,
   ChevronRight,
   Search,
   CheckCircle2,
@@ -195,6 +196,51 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Navigation track scrolling & category filtering
+  const tabsNavRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [navCategoryFilter, setNavCategoryFilter] = useState<'all' | 'mentoring' | 'admin' | 'services'>('all');
+
+  const checkTabsScroll = () => {
+    if (tabsNavRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsNavRef.current;
+      setCanScrollLeft(scrollLeft > 6);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
+    }
+  };
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsNavRef.current) {
+      tabsNavRef.current.scrollBy({
+        left: direction === 'left' ? -260 : 260,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  // Check scroll boundaries on mount, resize and category change
+  useEffect(() => {
+    checkTabsScroll();
+    const el = tabsNavRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkTabsScroll, { passive: true });
+      window.addEventListener('resize', checkTabsScroll);
+      return () => {
+        el.removeEventListener('scroll', checkTabsScroll);
+        window.removeEventListener('resize', checkTabsScroll);
+      };
+    }
+  }, [activeTab, navCategoryFilter]);
+
+  // Auto-scroll active tab into view smoothly
+  useEffect(() => {
+    const activeEl = document.getElementById(`nav-tab-${activeTab}`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeTab]);
 
   const userRole = currentUser?.roleCode || currentUser?.role_code;
   const isHighAdmin = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL'].includes(userRole);
@@ -840,17 +886,113 @@ export default function App() {
     : [];
 
   const navTabs = [
-    { id: 'dashboard', label: 'Overview', icon: TrendingUp },
-    { id: 'students', label: 'Students', icon: GraduationCap, badge: students.length },
-    { id: 'proctors', label: 'Proctor Allocations', icon: Users, badge: proctors.length },
-    { id: 'meetings', label: 'Mentoring Meetings', icon: Calendar, badge: stats?.completedMeetings },
-    { id: 'interventions', label: 'Concerns & Risks', icon: AlertTriangle, badge: stats?.openConcerns, badgeAlert: Number(stats?.openConcerns) > 0 },
-    { id: 'communication', label: 'Parent Communication', icon: MessageSquare, badge: parentLogs.length, restricted: !isAdminRole && userRole !== 'PROCTOR' },
-    { id: 'institution', label: 'Academic Setup', icon: Building2, badge: structure?.departments?.length, restricted: !isAdminRole },
-    { id: 'users', label: 'Users & RBAC', icon: UserPlus, badge: managedUsers.length, restricted: !isHighAdmin },
-    { id: 'analytics', label: 'Accreditation Analytics', icon: BarChart3, restricted: !isAdminRole && userRole !== 'IQAC_ADMIN' },
-    { id: 'import', label: 'Marks Import', icon: FileSpreadsheet, restricted: !isAdminRole },
-    { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(userRole) },
+    // Core Mentoring & Student Operations
+    {
+      id: 'dashboard',
+      label: 'Overview',
+      fullLabel: 'Dashboard Overview',
+      description: 'Real-time metrics, attendance alerts & key KPIs',
+      icon: TrendingUp,
+      category: 'mentoring',
+    },
+    {
+      id: 'students',
+      label: 'Students',
+      fullLabel: 'Student Directory',
+      description: 'Student profiles, academic records & 360° proctor files',
+      icon: GraduationCap,
+      badge: students.length,
+      category: 'mentoring',
+    },
+    {
+      id: 'proctors',
+      label: 'Proctors',
+      fullLabel: 'Proctor Allocations',
+      description: 'Faculty mentor allocations & caseload distribution',
+      icon: Users,
+      badge: proctors.length,
+      category: 'mentoring',
+    },
+    {
+      id: 'meetings',
+      label: 'Meetings',
+      fullLabel: 'Mentoring Meetings',
+      description: 'Bi-weekly cycle logs, MOM agendas & action items',
+      icon: Calendar,
+      badge: stats?.completedMeetings,
+      category: 'mentoring',
+    },
+    {
+      id: 'interventions',
+      label: 'Concerns & Risks',
+      fullLabel: 'Concerns & Risks',
+      description: 'Attendance flags, marks alerts & follow-up actions',
+      icon: AlertTriangle,
+      badge: stats?.openConcerns,
+      badgeAlert: Number(stats?.openConcerns) > 0,
+      category: 'mentoring',
+    },
+
+    // Communication & Support Services
+    {
+      id: 'communication',
+      label: 'Parent Notices',
+      fullLabel: 'Parent Communication',
+      description: 'Official parent SMS, WhatsApp alerts & broadcast logs',
+      icon: MessageSquare,
+      badge: parentLogs.length,
+      category: 'services',
+      restricted: !isAdminRole && userRole !== 'PROCTOR',
+    },
+    {
+      id: 'counselling',
+      label: 'Counselling',
+      fullLabel: 'Confidential Counselling',
+      description: 'Encrypted psychological counseling & wellness logs',
+      icon: ShieldCheck,
+      category: 'services',
+      restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(userRole),
+    },
+
+    // Institutional Governance & Administration
+    {
+      id: 'institution',
+      label: 'Academic Setup',
+      fullLabel: 'Academic Structure',
+      description: 'Departments, programmes, batches & academic years',
+      icon: Building2,
+      badge: structure?.departments?.length,
+      category: 'admin',
+      restricted: !isAdminRole,
+    },
+    {
+      id: 'users',
+      label: 'Users & RBAC',
+      fullLabel: 'User Management & Audit',
+      description: 'Staff credentials, roles & tamper-evident audit logs',
+      icon: UserPlus,
+      badge: managedUsers.length,
+      category: 'admin',
+      restricted: !isHighAdmin,
+    },
+    {
+      id: 'analytics',
+      label: 'Accreditation',
+      fullLabel: 'Accreditation Analytics',
+      description: 'NBA / NAAC criterion compliance & proctor ratio',
+      icon: BarChart3,
+      category: 'admin',
+      restricted: !isAdminRole && userRole !== 'IQAC_ADMIN',
+    },
+    {
+      id: 'import',
+      label: 'Data Import',
+      fullLabel: 'Marks & Student Import',
+      description: 'CSV bulk upload & VTU semester mark validation',
+      icon: FileSpreadsheet,
+      category: 'admin',
+      restricted: !isAdminRole,
+    },
   ];
 
   if (loading) {
@@ -910,6 +1052,10 @@ export default function App() {
       </div>
     );
   }
+
+  const visibleNavTabs = navTabs.filter(
+    (tab) => !tab.restricted && (navCategoryFilter === 'all' || tab.category === navCategoryFilter)
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
@@ -1241,48 +1387,167 @@ export default function App() {
       </header>
 
       {/* Secondary Navigation Tabs Bar */}
-      <nav className="bg-white border-b border-slate-200 shadow-xs sticky top-16 z-30">
+      <nav className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] sticky top-16 z-30 select-none">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Desktop Scrolling Tabs with Badges */}
-          <div className="hidden lg:flex space-x-1 overflow-x-auto py-1.5">
-            {navTabs.map((tab) => {
-              if (tab.restricted) return null;
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
+          <div className="flex items-center justify-between gap-3 h-12">
+            {/* Left: Category Filter Segment (on screens >= 640px) */}
+            <div className="hidden md:flex items-center p-0.5 rounded-lg bg-slate-100/90 border border-slate-200/70 text-[11px] font-medium text-slate-600 flex-shrink-0">
+              {(
+                [
+                  { id: 'all', label: 'All' },
+                  { id: 'mentoring', label: 'Mentoring' },
+                  { id: 'admin', label: 'Admin' },
+                  { id: 'services', label: 'Services' },
+                ] as const
+              ).map((cat) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as ActiveTabType)}
-                  className={`flex items-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
-                    isActive
-                      ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border border-transparent'
+                  key={cat.id}
+                  onClick={() => setNavCategoryFilter(cat.id)}
+                  className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                    navCategoryFilter === cat.id
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sky-600' : 'text-slate-500'}`} />
-                  <span>{tab.label}</span>
-                  {tab.badge !== undefined && tab.badge !== null && (
-                    <span
-                      className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        tab.badgeAlert
-                          ? 'bg-rose-100 text-rose-700'
-                          : isActive
-                          ? 'bg-sky-200 text-sky-800'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
+                  {cat.label}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Mobile Screen Navigation Drawer / Grid */}
-          {mobileMenuOpen && (
-            <div className="lg:hidden py-3 border-t border-slate-100 space-y-3">
-              <div className="mb-2">
+            {/* Subtle Divider between Category Filters & Tab Strip */}
+            <div className="hidden md:block h-5 w-px bg-slate-200 flex-shrink-0" />
+
+            {/* Center / Full: Horizontally Scrollable Tab Rail */}
+            <div className="relative flex-1 min-w-0 flex items-center h-full">
+              {/* Left Scroll Chevron with Soft Fade Mask */}
+              {canScrollLeft && (
+                <div className="absolute left-0 inset-y-0 z-20 flex items-center pr-3 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none">
+                  <button
+                    type="button"
+                    onClick={() => scrollTabs('left')}
+                    className="pointer-events-auto p-1 rounded-md bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
+                    aria-label="Scroll navigation left"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Scrollable Tab Track */}
+              <div
+                ref={tabsNavRef}
+                className="flex items-center space-x-1 overflow-x-auto no-scrollbar scroll-smooth h-full w-full"
+                role="tablist"
+              >
+                {visibleNavTabs.map((tab, idx) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const showDivider =
+                    navCategoryFilter === 'all' &&
+                    idx > 0 &&
+                    visibleNavTabs[idx - 1].category !== tab.category;
+
+                  return (
+                    <React.Fragment key={tab.id}>
+                      {showDivider && (
+                        <div
+                          className="h-4 w-px bg-slate-200/80 mx-1.5 self-center flex-shrink-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <button
+                        id={`nav-tab-${tab.id}`}
+                        role="tab"
+                        aria-selected={isActive}
+                        title={tab.description || tab.fullLabel}
+                        onClick={() => setActiveTab(tab.id as ActiveTabType)}
+                        className={`group relative flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap flex-shrink-0 ${
+                          isActive
+                            ? 'bg-sky-50/80 text-sky-700 shadow-xs border border-sky-200/80'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border border-transparent'
+                        }`}
+                      >
+                        <Icon
+                          className={`w-3.5 h-3.5 transition-colors duration-150 ${
+                            isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600'
+                          }`}
+                        />
+                        <span>{tab.label}</span>
+                        {tab.badge !== undefined && tab.badge !== null && (
+                          <span
+                            className={`ml-1 px-1.5 py-0.5 rounded-full font-mono text-[10px] font-bold transition-colors ${
+                              tab.badgeAlert
+                                ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                                : isActive
+                                ? 'bg-sky-100 text-sky-800 border border-sky-200'
+                                : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200 border border-slate-200/60'
+                            }`}
+                          >
+                            {tab.badge}
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="absolute -bottom-[5px] inset-x-2 h-0.5 bg-sky-600 rounded-full" />
+                        )}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Right Scroll Chevron with Soft Fade Mask */}
+              {canScrollRight && (
+                <div className="absolute right-0 inset-y-0 z-20 flex items-center pl-3 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none">
+                  <button
+                    type="button"
+                    onClick={() => scrollTabs('right')}
+                    className="pointer-events-auto p-1 rounded-md bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
+                    aria-label="Scroll navigation right"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Upgraded Mobile Full Navigation Slide-over Drawer */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-200">
+            {/* Drawer Header */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-white text-sm">
+                  M
+                </div>
+                <div>
+                  <p className="font-bold text-sm leading-tight text-white">Mentor360</p>
+                  <p className="text-[10px] text-sky-400 font-mono">{currentUser?.roleCode || currentUser?.role_code}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                aria-label="Close Navigation Drawer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Search & Quick Meta */}
+            <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search student or mentor..."
@@ -1291,42 +1556,187 @@ export default function App() {
                     setGlobalSearch(e.target.value);
                     setGlobalSearchFocused(true);
                   }}
-                  className="w-full px-3 py-2 bg-slate-100 rounded-lg text-xs"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {navTabs.map((tab) => {
-                  if (tab.restricted) return null;
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id as ActiveTabType);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold text-left transition ${
-                        isActive
-                          ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                          : 'text-slate-700 hover:bg-slate-50 border border-transparent'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{tab.label}</span>
-                      {tab.badge !== undefined && tab.badge !== null && (
-                        <span className="ml-auto text-[10px] font-mono text-slate-400">
-                          {tab.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                <span>{currentUser?.institutionName || 'SVIT Bangalore'}</span>
+                <span className="font-semibold text-sky-700">Odd Sem 2024-25</span>
               </div>
             </div>
-          )}
+
+            {/* Categorized Drawer Navigation Links */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {/* Group 1: Mentoring Operations */}
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-1.5">
+                  Mentoring & Student Roster
+                </span>
+                <div className="space-y-1">
+                  {navTabs
+                    .filter((t) => !t.restricted && t.category === 'mentoring')
+                    .map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => {
+                            setActiveTab(tab.id as ActiveTabType);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition ${
+                            isActive
+                              ? 'bg-sky-50 text-sky-800 font-semibold border border-sky-200'
+                              : 'text-slate-700 hover:bg-slate-50 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`p-1.5 rounded-md ${
+                                isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 flex-shrink-0" />
+                            </div>
+                            <div className="truncate">
+                              <p className="text-xs truncate font-medium">{tab.fullLabel || tab.label}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{tab.description}</p>
+                            </div>
+                          </div>
+                          {tab.badge !== undefined && tab.badge !== null && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                tab.badgeAlert
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {tab.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Group 2: Communications & Services */}
+              {navTabs.some((t) => !t.restricted && t.category === 'services') && (
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-1.5">
+                    Communication & Well-being
+                  </span>
+                  <div className="space-y-1">
+                    {navTabs
+                      .filter((t) => !t.restricted && t.category === 'services')
+                      .map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab(tab.id as ActiveTabType);
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition ${
+                              isActive
+                                ? 'bg-sky-50 text-sky-800 font-semibold border border-sky-200'
+                                : 'text-slate-700 hover:bg-slate-50 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`p-1.5 rounded-md ${
+                                  isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4 flex-shrink-0" />
+                              </div>
+                              <div className="truncate">
+                                <p className="text-xs truncate font-medium">{tab.fullLabel || tab.label}</p>
+                                <p className="text-[10px] text-slate-400 truncate">{tab.description}</p>
+                              </div>
+                            </div>
+                            {tab.badge !== undefined && tab.badge !== null && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
+                                {tab.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* Group 3: Institutional Governance & Administration */}
+              {navTabs.some((t) => !t.restricted && t.category === 'admin') && (
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-1.5">
+                    Institutional Administration
+                  </span>
+                  <div className="space-y-1">
+                    {navTabs
+                      .filter((t) => !t.restricted && t.category === 'admin')
+                      .map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab(tab.id as ActiveTabType);
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition ${
+                              isActive
+                                ? 'bg-sky-50 text-sky-800 font-semibold border border-sky-200'
+                                : 'text-slate-700 hover:bg-slate-50 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`p-1.5 rounded-md ${
+                                  isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4 flex-shrink-0" />
+                              </div>
+                              <div className="truncate">
+                                <p className="text-xs truncate font-medium">{tab.fullLabel || tab.label}</p>
+                                <p className="text-[10px] text-slate-400 truncate">{tab.description}</p>
+                              </div>
+                            </div>
+                            {tab.badge !== undefined && tab.badge !== null && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
+                                {tab.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-3 bg-slate-50 border-t border-slate-200 space-y-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 font-semibold text-xs transition"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Sign Out
+              </button>
+            </div>
+          </div>
         </div>
-      </nav>
+      )}
 
       {/* Main Workspace Body */}
       <main className="w-full p-6 flex-1 max-w-7xl mx-auto space-y-6">

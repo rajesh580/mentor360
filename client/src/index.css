@@ -16,3 +16,12 @@ body,
   min-height: 100vh;
   margin: 0;
 }
+
+/* Custom utility: Hide scrollbar for horizontally scrollable navigation tracks */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
