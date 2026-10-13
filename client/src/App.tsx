@@ -39,6 +39,10 @@ import {
   PlusCircle,
   Filter,
   MessageSquare,
+  Bell,
+  ChevronDown,
+  Menu,
+  Sparkles,
 } from 'lucide-react';
 
 // API base URL configuration: uses Vite proxy in dev (/api) or custom VITE_API_URL
@@ -183,9 +187,45 @@ export default function App() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  // Header Omnibar, Quick Actions, Popovers & Mobile Navigation
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalSearchFocused, setGlobalSearchFocused] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([
+    { id: '1', title: 'VTU Exam Schedule Announced', message: 'VTU Odd Semester Examination timetable has been uploaded for 2024-25.', time: '10m ago', unread: true },
+    { id: '2', title: 'Attendance Shortage Trigger', message: '4 students in Semester 5 CSE attendance fallen below 75%. Action plan required.', time: '1h ago', unread: true },
+    { id: '3', title: 'Bi-Weekly Mentoring Review', message: 'Cycle review due this Friday for all assigned proctor groups.', time: '3h ago', unread: false },
+  ]);
+
   const userRole = currentUser?.roleCode || currentUser?.role_code;
   const isHighAdmin = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL'].includes(userRole);
   const isAdminRole = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'HOD', 'PROCTOR_COORDINATOR'].includes(userRole);
+
+  // Omnibar keyboard shortcut listener (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.getElementById('global-search-input');
+        if (input) {
+          input.focus();
+          setGlobalSearchFocused(true);
+        }
+      }
+      if (e.key === 'Escape') {
+        setGlobalSearchFocused(false);
+        setNotificationsOpen(false);
+        setUserMenuOpen(false);
+        setQuickActionsOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Restore existing session
   useEffect(() => {
@@ -770,6 +810,34 @@ export default function App() {
     return matchesSearch && matchesDept && matchesSem;
   });
 
+  const matchingStudents = globalSearch.trim().length > 1
+    ? students.filter((s) =>
+        s.full_name?.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        s.usn?.toLowerCase().includes(globalSearch.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  const matchingProctors = globalSearch.trim().length > 1
+    ? proctors.filter((p) =>
+        p.faculty_name?.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        p.employee_id?.toLowerCase().includes(globalSearch.toLowerCase())
+      ).slice(0, 3)
+    : [];
+
+  const navTabs = [
+    { id: 'dashboard', label: 'Overview', icon: TrendingUp },
+    { id: 'students', label: 'Students', icon: GraduationCap, badge: students.length },
+    { id: 'proctors', label: 'Proctor Allocations', icon: Users, badge: proctors.length },
+    { id: 'meetings', label: 'Mentoring Meetings', icon: Calendar, badge: stats?.completedMeetings },
+    { id: 'interventions', label: 'Concerns & Risks', icon: AlertTriangle, badge: stats?.openConcerns, badgeAlert: Number(stats?.openConcerns) > 0 },
+    { id: 'communication', label: 'Parent Communication', icon: MessageSquare, badge: parentLogs.length, restricted: !isAdminRole && userRole !== 'PROCTOR' },
+    { id: 'institution', label: 'Academic Setup', icon: Building2, badge: structure?.departments?.length, restricted: !isAdminRole },
+    { id: 'users', label: 'Users & RBAC', icon: UserPlus, badge: managedUsers.length, restricted: !isHighAdmin },
+    { id: 'analytics', label: 'Accreditation Analytics', icon: BarChart3, restricted: !isAdminRole && userRole !== 'IQAC_ADMIN' },
+    { id: 'import', label: 'Marks Import', icon: FileSpreadsheet, restricted: !isAdminRole },
+    { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(userRole) },
+  ];
+
   if (loading) {
     return <div className="min-h-screen grid place-items-center bg-slate-50 text-sm text-slate-500">Restoring your session…</div>;
   }
@@ -837,80 +905,409 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
+      {/* Backdrop overlay dismisser for open popovers */}
+      {(globalSearchFocused || notificationsOpen || userMenuOpen || quickActionsOpen) && (
+        <div
+          className="fixed inset-0 z-30 bg-transparent"
+          onClick={() => {
+            setGlobalSearchFocused(false);
+            setNotificationsOpen(false);
+            setUserMenuOpen(false);
+            setQuickActionsOpen(false);
+          }}
+        />
+      )}
+
       {/* Top Application Header */}
-      <header className="bg-slate-900 text-white px-6 py-3 border-b border-slate-800 sticky top-0 z-40 shadow-sm">
-        <div className="w-full flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-extrabold text-lg text-white shadow-md">
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-sm">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          {/* Left: Brand Identity */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-black text-base text-white shadow-md">
               M
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl tracking-tight text-white">Mentor360</span>
-                <span className="text-[11px] bg-sky-500/20 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-400/30">
-                  {currentUser.roleCode || currentUser.role_code}
+                <span className="font-extrabold text-lg tracking-tight text-white">Mentor360</span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] bg-slate-800 text-slate-300 font-semibold px-2 py-0.5 rounded border border-slate-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  VTU Affiliate
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-slate-400" /> {currentUser.institutionName || 'Sai Vidya Institute of Technology'}
+              <p className="text-[11px] text-slate-400 flex items-center gap-1 truncate max-w-[170px] sm:max-w-none">
+                <Building2 className="w-3 h-3 text-slate-400 flex-shrink-0" /> {currentUser.institutionName || 'SVIT Bangalore'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-xs font-semibold text-white">{currentUser.fullName || currentUser.full_name}</p>
-              <p className="text-[11px] text-sky-400 font-medium">{currentUser.email}</p>
+          {/* Center: Global Command Omnibar Search (desktop / tablet) */}
+          <div className="relative hidden md:block flex-1 max-w-md mx-2 lg:mx-6 z-40">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                id="global-search-input"
+                type="text"
+                placeholder="Search USN, student name, or mentor... (Ctrl + K)"
+                value={globalSearch}
+                onChange={(e) => {
+                  setGlobalSearch(e.target.value);
+                  setGlobalSearchFocused(true);
+                }}
+                onFocus={() => setGlobalSearchFocused(true)}
+                className="w-full pl-9 pr-14 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+              />
+              <kbd className="absolute right-2.5 top-2 pointer-events-none text-[10px] font-mono text-slate-400 bg-slate-700/70 px-1.5 py-0.5 rounded border border-slate-600">
+                ⌘K
+              </kbd>
             </div>
-            <div className="w-9 h-9 rounded-full bg-sky-700 text-sky-100 flex items-center justify-center font-bold text-sm shadow">
-              {(currentUser.fullName || currentUser.full_name || currentUser.email || 'U')[0]}
+
+            {/* Instant Omnibar Search Dropdown */}
+            {globalSearchFocused && globalSearch.trim().length > 1 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 text-xs">
+                <div className="p-2 border-b border-slate-800 flex justify-between items-center text-slate-400 text-[11px]">
+                  <span>Matches for "{globalSearch}"</span>
+                  <button
+                    onClick={() => {
+                      setGlobalSearchFocused(false);
+                      setGlobalSearch('');
+                    }}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-800 p-1">
+                  {matchingStudents.length > 0 && (
+                    <div className="p-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 block">Students</span>
+                      {matchingStudents.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            viewProctorFile(s.id);
+                            setGlobalSearch('');
+                            setGlobalSearchFocused(false);
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-slate-800 flex items-center justify-between text-slate-200 transition"
+                        >
+                          <div>
+                            <span className="font-semibold block">{s.full_name}</span>
+                            <span className="text-[11px] font-mono text-sky-400">{s.usn} • {s.department_code} Sem {s.current_semester}</span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-400">View File &rarr;</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {matchingProctors.length > 0 && (
+                    <div className="p-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 block">Faculty Mentors</span>
+                      {matchingProctors.map((p) => (
+                        <button
+                          key={p.faculty_id}
+                          onClick={() => {
+                            setActiveTab('proctors');
+                            setGlobalSearch('');
+                            setGlobalSearchFocused(false);
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-slate-800 flex items-center justify-between text-slate-200 transition"
+                        >
+                          <div>
+                            <span className="font-semibold block">{p.faculty_name}</span>
+                            <span className="text-[11px] text-slate-400">{p.designation} • Dept of {p.department_code}</span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-400">View Workload &rarr;</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {matchingStudents.length === 0 && matchingProctors.length === 0 && (
+                    <div className="p-4 text-center text-slate-400 text-xs">
+                      No matching records found for "{globalSearch}".
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Actions, Academic Year, Notifications & Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Academic Cycle Pill */}
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-[11px] text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="font-semibold">AY 2024-25</span>
+              <span className="text-slate-500 font-normal">Odd Sem</span>
             </div>
+
+            {/* Quick Action Button with Popover */}
+            {isAdminRole && (
+              <div className="relative">
+                <button
+                  onClick={() => setQuickActionsOpen(!quickActionsOpen)}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs shadow-xs transition"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Quick Action</span>
+                  <ChevronDown className="w-3 h-3 text-sky-200" />
+                </button>
+
+                {quickActionsOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 p-1.5 z-50 text-xs space-y-1">
+                    <button
+                      onClick={() => {
+                        setAddStudentModalOpen(true);
+                        setQuickActionsOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 font-medium"
+                    >
+                      <GraduationCap className="w-4 h-4 text-sky-600" /> Register New Student
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBroadcastModalOpen(true);
+                        setQuickActionsOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 font-medium"
+                    >
+                      <Send className="w-4 h-4 text-indigo-600" /> Dispatch Parent Alert
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewDeptModalOpen(true);
+                        setQuickActionsOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 font-medium"
+                    >
+                      <Building2 className="w-4 h-4 text-emerald-600" /> Add Department
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewAyModalOpen(true);
+                        setQuickActionsOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 font-medium"
+                    >
+                      <Calendar className="w-4 h-4 text-amber-600" /> Add Academic Year
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleExportAccreditation();
+                        setQuickActionsOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 font-medium border-t border-slate-100 pt-2"
+                    >
+                      <Download className="w-4 h-4 text-slate-600" /> Export NBA/NAAC Report
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Notification Bell Button & Popover */}
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {notifications.filter((n) => n.unread).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 text-xs">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Bell className="w-3.5 h-3.5 text-sky-600" /> Institutional Notices
+                    </span>
+                    <button
+                      onClick={() => {
+                        setNotifications(notifications.map((n) => ({ ...n, unread: false })));
+                      }}
+                      className="text-[10px] text-sky-600 hover:underline font-semibold"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                    {notifications.map((n) => (
+                      <div key={n.id} className={`p-3 space-y-1 ${n.unread ? 'bg-sky-50/40' : 'bg-white'}`}>
+                        <div className="flex justify-between items-start">
+                          <span className="font-semibold text-slate-900">{n.title}</span>
+                          <span className="text-[10px] text-slate-400">{n.time || 'Today'}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-snug">{n.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* User Profile Avatar with Popover */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 p-1 pl-2 rounded-lg border border-slate-700/80 hover:bg-slate-800/80 transition"
+              >
+                <div className="w-7 h-7 rounded-lg bg-sky-700 text-sky-100 flex items-center justify-center font-bold text-xs shadow-xs">
+                  {(currentUser.fullName || currentUser.full_name || currentUser.email || 'U')[0]}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-[11px] font-semibold text-white leading-tight truncate max-w-[110px]">
+                    {currentUser.fullName || currentUser.full_name}
+                  </p>
+                  <p className="text-[9px] text-sky-400 font-mono tracking-wide leading-tight truncate max-w-[110px]">
+                    {currentUser.roleCode || currentUser.role_code}
+                  </p>
+                </div>
+                <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 p-3 z-50 text-xs space-y-3">
+                  <div className="border-b border-slate-100 pb-2.5">
+                    <p className="font-bold text-sm text-slate-900">{currentUser.fullName || currentUser.full_name}</p>
+                    <p className="text-slate-500 text-[11px] truncate">{currentUser.email}</p>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-sky-100 text-sky-800">
+                        {currentUser.roleCode || currentUser.role_code}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">{currentUser.institutionName}</span>
+                    </div>
+                  </div>
+
+                  {isHighAdmin && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('users');
+                        setUsersSubTab('audit');
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-slate-100 flex items-center gap-2 text-slate-700 font-medium"
+                    >
+                      <Activity className="w-3.5 h-3.5 text-slate-500" /> View System Audit Trail
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left py-1.5 px-2 rounded-lg text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold pt-2 border-t border-slate-100"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Sign out of Workspace
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Menu Hamburger Toggle */}
             <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 hover:text-white"
-              aria-label="Sign out"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 lg:hidden transition"
+              aria-label="Toggle Navigation Menu"
             >
-              <LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sign out</span>
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Navigation Tabs */}
-      <div className="bg-white border-b border-slate-200 shadow-xs sticky top-[57px] z-30">
-        <div className="w-full px-6 flex space-x-1 overflow-x-auto">
-          {[
-            { id: 'dashboard', label: 'Overview', icon: TrendingUp },
-            { id: 'students', label: 'Students & Proctor Book', icon: GraduationCap },
-            { id: 'proctors', label: 'Proctor Allocations & Workload', icon: Users },
-            { id: 'meetings', label: 'Mentoring Meetings', icon: Calendar },
-            { id: 'interventions', label: 'Concerns & Interventions', icon: AlertTriangle },
-            { id: 'communication', label: 'Parent Communication', icon: MessageSquare, restricted: !isAdminRole && userRole !== 'PROCTOR' },
-            { id: 'institution', label: 'Academic Structure & Setup', icon: Building2, restricted: !isAdminRole },
-            { id: 'users', label: 'Users & RBAC Access', icon: UserPlus, restricted: !isHighAdmin },
-            { id: 'analytics', label: 'Accreditation & Analytics', icon: BarChart3, restricted: !isAdminRole && userRole !== 'IQAC_ADMIN' },
-            { id: 'import', label: 'Bulk Marks Import', icon: FileSpreadsheet, restricted: !isAdminRole },
-            { id: 'counselling', label: 'Confidential Counselling', icon: ShieldCheck, restricted: !['COUNSELLOR', 'SUPER_ADMIN'].includes(userRole) },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            if (tab.restricted) return null;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as ActiveTabType)}
-                className={`flex items-center gap-2 py-3 px-3.5 text-xs sm:text-sm font-semibold border-b-2 transition whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-sky-600 text-sky-600 bg-sky-50/20'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+      {/* Secondary Navigation Tabs Bar */}
+      <nav className="bg-white border-b border-slate-200 shadow-xs sticky top-16 z-30">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Desktop Scrolling Tabs with Badges */}
+          <div className="hidden lg:flex space-x-1 overflow-x-auto py-1.5">
+            {navTabs.map((tab) => {
+              if (tab.restricted) return null;
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as ActiveTabType)}
+                  className={`flex items-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+                    isActive
+                      ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border border-transparent'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sky-600' : 'text-slate-500'}`} />
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge !== null && (
+                    <span
+                      className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        tab.badgeAlert
+                          ? 'bg-rose-100 text-rose-700'
+                          : isActive
+                          ? 'bg-sky-200 text-sky-800'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mobile Screen Navigation Drawer / Grid */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden py-3 border-t border-slate-100 space-y-3">
+              <div className="mb-2">
+                <input
+                  type="text"
+                  placeholder="Search student or mentor..."
+                  value={globalSearch}
+                  onChange={(e) => {
+                    setGlobalSearch(e.target.value);
+                    setGlobalSearchFocused(true);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-100 rounded-lg text-xs"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {navTabs.map((tab) => {
+                  if (tab.restricted) return null;
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as ActiveTabType);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold text-left transition ${
+                        isActive
+                          ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                          : 'text-slate-700 hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{tab.label}</span>
+                      {tab.badge !== undefined && tab.badge !== null && (
+                        <span className="ml-auto text-[10px] font-mono text-slate-400">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </nav>
 
       {/* Main Workspace Body */}
       <main className="w-full p-6 flex-1 max-w-7xl mx-auto space-y-6">
