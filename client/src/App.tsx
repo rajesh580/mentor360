@@ -44,7 +44,18 @@ import {
   ChevronDown,
   Menu,
   Sparkles,
+  Briefcase,
+  Target,
 } from 'lucide-react';
+
+import { StudentPortal } from './components/StudentPortal';
+import { ParentPortal } from './components/ParentPortal';
+import { ProctorCoordinatorPanel } from './components/ProctorCoordinatorPanel';
+import { PlacementPanel } from './components/PlacementPanel';
+import { IqacPanel } from './components/IqacPanel';
+import { SuperAdminTenantsPanel } from './components/SuperAdminTenantsPanel';
+import { UniversityAdminPanel } from './components/UniversityAdminPanel';
+import { LeadershipDashboard } from './components/LeadershipDashboard';
 
 // API base URL configuration: uses Vite proxy in dev (/api) or custom VITE_API_URL
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -65,6 +76,22 @@ const USER_ROLE_OPTIONS = [
   ['SUPER_ADMIN', 'Super Administrator'],
 ];
 
+export const DEMO_ACCOUNTS = [
+  { role: 'SUPER_ADMIN', label: 'Super Administrator', email: 'admin@mentor360.com' },
+  { role: 'UNIVERSITY_ADMIN', label: 'University Administrator', email: 'univ.admin@vtu.ac.in' },
+  { role: 'INSTITUTION_ADMIN', label: 'Institution Administrator', email: 'admin@svit.edu.in' },
+  { role: 'PRINCIPAL', label: 'Principal / Director', email: 'principal@svit.edu.in' },
+  { role: 'DEAN', label: 'Dean Academics', email: 'dean.academics@svit.edu.in' },
+  { role: 'HOD', label: 'HOD Computer Science', email: 'hod.cse@svit.edu.in' },
+  { role: 'PROCTOR_COORDINATOR', label: 'Proctor Coordinator', email: 'proctor.coord@svit.edu.in' },
+  { role: 'PROCTOR', label: 'Faculty Proctor / Mentor', email: 'mentor.ramesh@svit.edu.in' },
+  { role: 'STUDENT', label: 'Student (Aarav Sharma)', email: 'aarav.sharma@svit.edu.in' },
+  { role: 'PARENT', label: 'Parent / Guardian', email: 'parent.1sv22cs001@example.com' },
+  { role: 'COUNSELLOR', label: 'Student Counsellor', email: 'counsellor@svit.edu.in' },
+  { role: 'PLACEMENT_OFFICER', label: 'Placement Officer', email: 'placement@svit.edu.in' },
+  { role: 'IQAC_ADMIN', label: 'IQAC / Accreditation Admin', email: 'iqac@svit.edu.in' },
+];
+
 type ActiveTabType =
   | 'dashboard'
   | 'students'
@@ -76,7 +103,15 @@ type ActiveTabType =
   | 'users'
   | 'institution'
   | 'communication'
-  | 'analytics';
+  | 'analytics'
+  | 'student-portal'
+  | 'parent-portal'
+  | 'coordinator'
+  | 'placement'
+  | 'iqac-accreditation'
+  | 'tenants'
+  | 'university'
+  | 'executive';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTabType>('dashboard');
@@ -269,6 +304,45 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+
+  const selectDefaultTabForRole = (role: string) => {
+    if (role === 'STUDENT') setActiveTab('student-portal');
+    else if (role === 'PARENT') setActiveTab('parent-portal');
+    else if (role === 'PROCTOR_COORDINATOR') setActiveTab('coordinator');
+    else if (role === 'PLACEMENT_OFFICER') setActiveTab('placement');
+    else if (role === 'IQAC_ADMIN') setActiveTab('iqac-accreditation');
+    else if (role === 'UNIVERSITY_ADMIN') setActiveTab('university');
+    else if (role === 'SUPER_ADMIN') setActiveTab('tenants');
+    else if (['PRINCIPAL', 'DEAN', 'HOD'].includes(role)) setActiveTab('executive');
+    else if (role === 'COUNSELLOR') setActiveTab('counselling');
+    else setActiveTab('dashboard');
+  };
+
+  const instantDemoLogin = async (demoEmail: string) => {
+    setSigningIn(true);
+    setAuthError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: demoEmail, password: 'Password@123' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Authentication failed');
+
+      localStorage.setItem('mentor360_token', data.token);
+      setToken(data.token);
+      setCurrentUser(data.user);
+      selectDefaultTabForRole(data.user.roleCode);
+      void fetchData(data.token, data.user.roleCode);
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to sign in.');
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
   // Restore existing session
   useEffect(() => {
     const savedToken = localStorage.getItem('mentor360_token');
@@ -283,6 +357,7 @@ export default function App() {
         const user = data.user;
         setCurrentUser({ ...user, fullName: user.full_name, roleCode: user.role_code, institutionName: user.institution_name });
         setToken(savedToken);
+        selectDefaultTabForRole(user.role_code);
         void fetchData(savedToken, user.role_code);
       })
       .catch(() => localStorage.removeItem('mentor360_token'))
@@ -304,6 +379,7 @@ export default function App() {
       localStorage.setItem('mentor360_token', data.token);
       setToken(data.token);
       setCurrentUser(data.user);
+      selectDefaultTabForRole(data.user.roleCode);
       void fetchData(data.token, data.user.roleCode);
     } catch (err: any) {
       setAuthError(err.message || 'Could not connect to the server. Please try again.');
@@ -885,7 +961,83 @@ export default function App() {
       ).slice(0, 3)
     : [];
 
+  const isStudentOrParent = ['STUDENT', 'PARENT'].includes(userRole);
+
   const navTabs = [
+    // Specialized Role Dedicated Portals
+    {
+      id: 'student-portal',
+      label: 'My 360° Portal',
+      fullLabel: 'Student Success Portal',
+      description: 'Your attendance, IA marks, mentor profile & meeting requests',
+      icon: GraduationCap,
+      category: 'mentoring',
+      restricted: userRole !== 'STUDENT',
+    },
+    {
+      id: 'parent-portal',
+      label: 'Ward Portal',
+      fullLabel: 'Parent / Guardian Portal',
+      description: 'Ward academic performance, attendance shortage alerts & mentor details',
+      icon: Users,
+      category: 'services',
+      restricted: userRole !== 'PARENT',
+    },
+    {
+      id: 'coordinator',
+      label: 'Allocation Console',
+      fullLabel: 'Proctor Allocation & Balancing',
+      description: 'Caseload balancing, unallocated student batch allocation & reassignment trail',
+      icon: ArrowRightLeft,
+      category: 'mentoring',
+      restricted: !['PROCTOR_COORDINATOR', 'SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'HOD'].includes(userRole),
+    },
+    {
+      id: 'executive',
+      label: 'Executive Cockpit',
+      fullLabel: 'Leadership Scorecard',
+      description: 'Departmental comparative metrics, syllabus, risk ratios & proctor coverage',
+      icon: TrendingUp,
+      category: 'admin',
+      restricted: !['PRINCIPAL', 'DEAN', 'HOD', 'SUPER_ADMIN', 'INSTITUTION_ADMIN'].includes(userRole),
+    },
+    {
+      id: 'placement',
+      label: 'Placement & Career',
+      fullLabel: 'Placement & Internship Console',
+      description: 'Skills directory, verified certifications, internships & company drive eligibility',
+      icon: Briefcase,
+      category: 'services',
+      restricted: isStudentOrParent,
+    },
+    {
+      id: 'iqac-accreditation',
+      label: 'NAAC / NBA Metrics',
+      fullLabel: 'IQAC Quality Assurance',
+      description: 'Criterion 2.3.3 ratio compliance, slow & advanced learner identification',
+      icon: Award,
+      category: 'admin',
+      restricted: !['IQAC_ADMIN', 'SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'DEAN'].includes(userRole),
+    },
+    {
+      id: 'university',
+      label: 'University Portal',
+      fullLabel: 'VTU Affiliated Colleges',
+      description: 'University-wide multi-institution monitoring, proctor health & compliance',
+      icon: Building2,
+      category: 'admin',
+      restricted: !['UNIVERSITY_ADMIN', 'SUPER_ADMIN'].includes(userRole),
+    },
+    {
+      id: 'tenants',
+      label: 'Multi-Tenant SaaS',
+      fullLabel: 'SaaS Tenant Provisioning',
+      description: 'Onboard institutions, bootstrap college administrators & quota controls',
+      icon: Layers,
+      category: 'admin',
+      restricted: userRole !== 'SUPER_ADMIN',
+    },
+
     // Core Mentoring & Student Operations
     {
       id: 'dashboard',
@@ -894,6 +1046,7 @@ export default function App() {
       description: 'Real-time metrics, attendance alerts & key KPIs',
       icon: TrendingUp,
       category: 'mentoring',
+      restricted: isStudentOrParent,
     },
     {
       id: 'students',
@@ -903,6 +1056,7 @@ export default function App() {
       icon: GraduationCap,
       badge: students.length,
       category: 'mentoring',
+      restricted: isStudentOrParent,
     },
     {
       id: 'proctors',
@@ -912,6 +1066,7 @@ export default function App() {
       icon: Users,
       badge: proctors.length,
       category: 'mentoring',
+      restricted: isStudentOrParent,
     },
     {
       id: 'meetings',
@@ -921,6 +1076,7 @@ export default function App() {
       icon: Calendar,
       badge: stats?.completedMeetings,
       category: 'mentoring',
+      restricted: isStudentOrParent,
     },
     {
       id: 'interventions',
@@ -931,6 +1087,7 @@ export default function App() {
       badge: stats?.openConcerns,
       badgeAlert: Number(stats?.openConcerns) > 0,
       category: 'mentoring',
+      restricted: isStudentOrParent,
     },
 
     // Communication & Support Services
@@ -942,7 +1099,7 @@ export default function App() {
       icon: MessageSquare,
       badge: parentLogs.length,
       category: 'services',
-      restricted: !isAdminRole && userRole !== 'PROCTOR',
+      restricted: isStudentOrParent || (!isAdminRole && userRole !== 'PROCTOR'),
     },
     {
       id: 'counselling',
@@ -963,7 +1120,7 @@ export default function App() {
       icon: Building2,
       badge: structure?.departments?.length,
       category: 'admin',
-      restricted: !isAdminRole,
+      restricted: isStudentOrParent || !isAdminRole,
     },
     {
       id: 'users',
@@ -982,7 +1139,7 @@ export default function App() {
       description: 'NBA / NAAC criterion compliance & proctor ratio',
       icon: BarChart3,
       category: 'admin',
-      restricted: !isAdminRole && userRole !== 'IQAC_ADMIN',
+      restricted: isStudentOrParent || (!isAdminRole && userRole !== 'IQAC_ADMIN'),
     },
     {
       id: 'import',
@@ -1001,53 +1158,179 @@ export default function App() {
 
   if (!token || !currentUser) {
     return (
-      <div className="min-h-screen w-full bg-slate-950 text-slate-900 flex items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-sky-600 text-xl font-bold text-white shadow-md">M</div>
+      <div className="min-h-screen w-full bg-slate-950 text-slate-900 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-5xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+          {/* Left Column: Traditional Credentials Login */}
+          <div className="p-8 lg:p-10 lg:col-span-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-100">
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight">Mentor360</h1>
-              <p className="text-sm text-slate-500">Higher Education Mentoring & Proctoring</p>
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-xl font-black text-white shadow-md">M</div>
+                <div>
+                  <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Mentor360</h1>
+                  <p className="text-xs text-slate-500 font-medium">Enterprise Higher-Ed Proctoring SaaS</p>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Institutional Sign In</h2>
+                <p className="mt-1 text-xs text-slate-500">Sign in with your university or college credentials.</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold text-slate-700">Email address</label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    placeholder="name@institution.edu"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="login-password" className="mb-1.5 block text-xs font-semibold text-slate-700">Password</label>
+                  <input
+                    id="login-password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                {authError && (
+                  <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs text-rose-700">
+                    {authError}
+                  </p>
+                )}
+
+                <button
+                  disabled={signingIn}
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-xs font-bold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 shadow-sm"
+                >
+                  <LockKeyhole className="h-4 w-4" />{signingIn ? 'Authenticating…' : 'Sign in to Workspace'}
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> AES-256 RBAC Protected
+              </span>
+              <span>VTU Affiliated Standard</span>
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Institutional Sign In</h2>
-          <p className="mt-1 text-sm text-slate-500">Sign in with your role-authorized credentials.</p>
-          <form onSubmit={handleLogin} className="mt-7 space-y-5">
+
+          {/* Right Column: 1-Click Persona Simulator for Evaluation */}
+          <div className="p-8 lg:p-10 lg:col-span-6 bg-slate-50/70 flex flex-col justify-between">
             <div>
-              <label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold text-slate-700">Email address</label>
-              <input
-                id="login-email"
-                type="email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                placeholder="name@institution.edu"
-              />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-sm font-bold text-slate-900">One-Click Persona Demo</h3>
+                </div>
+                <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full">
+                  13 Roles (SRS Doc)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1 mb-4">
+                Click any role below to instantly load their dedicated RBAC workspace & permissions.
+              </p>
+
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {/* Group: Governance & Leadership */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    System & Executive Leadership
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {DEMO_ACCOUNTS.filter(a => ['SUPER_ADMIN', 'UNIVERSITY_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'DEAN', 'HOD'].includes(a.role)).map((acc) => (
+                      <button
+                        key={acc.role}
+                        disabled={signingIn}
+                        onClick={() => instantDemoLogin(acc.email)}
+                        className="text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition group"
+                      >
+                        <p className="text-[11px] font-bold text-slate-800 group-hover:text-sky-700 truncate">{acc.label}</p>
+                        <p className="text-[9px] font-mono text-slate-400 truncate">{acc.email}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Group: Mentoring & Proctoring */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Faculty Proctoring & Allocation
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {DEMO_ACCOUNTS.filter(a => ['PROCTOR_COORDINATOR', 'PROCTOR'].includes(a.role)).map((acc) => (
+                      <button
+                        key={acc.role}
+                        disabled={signingIn}
+                        onClick={() => instantDemoLogin(acc.email)}
+                        className="text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition group"
+                      >
+                        <p className="text-[11px] font-bold text-slate-800 group-hover:text-sky-700 truncate">{acc.label}</p>
+                        <p className="text-[9px] font-mono text-slate-400 truncate">{acc.email}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Group: Students & Guardians */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Student & Guardian Portals
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {DEMO_ACCOUNTS.filter(a => ['STUDENT', 'PARENT'].includes(a.role)).map((acc) => (
+                      <button
+                        key={acc.role}
+                        disabled={signingIn}
+                        onClick={() => instantDemoLogin(acc.email)}
+                        className="text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition group"
+                      >
+                        <p className="text-[11px] font-bold text-slate-800 group-hover:text-sky-700 truncate">{acc.label}</p>
+                        <p className="text-[9px] font-mono text-slate-400 truncate">{acc.email}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Group: Specialized Services */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Specialized Institutional Services
+                  </span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {DEMO_ACCOUNTS.filter(a => ['COUNSELLOR', 'PLACEMENT_OFFICER', 'IQAC_ADMIN'].includes(a.role)).map((acc) => (
+                      <button
+                        key={acc.role}
+                        disabled={signingIn}
+                        onClick={() => instantDemoLogin(acc.email)}
+                        className="text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition group"
+                      >
+                        <p className="text-[10px] font-bold text-slate-800 group-hover:text-sky-700 truncate">{acc.label}</p>
+                        <p className="text-[9px] font-mono text-slate-400 truncate">{acc.email.split('@')[0]}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
-              <input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                placeholder="Enter your password"
-              />
-            </div>
-            {authError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{authError}</p>}
-            <button
-              disabled={signingIn}
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 shadow-sm"
-            >
-              <LockKeyhole className="h-4 w-4" />{signingIn ? 'Signing in…' : 'Sign in to Workspace'}
-            </button>
-          </form>
+
+            <p className="text-[10px] text-slate-400 text-center mt-3">
+              Default password for all seeded accounts is <span className="font-mono font-semibold">Password@123</span>
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -1060,7 +1343,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
       {/* Backdrop overlay dismisser for open popovers */}
-      {(globalSearchFocused || notificationsOpen || userMenuOpen || quickActionsOpen) && (
+      {(globalSearchFocused || notificationsOpen || userMenuOpen || quickActionsOpen || roleMenuOpen) && (
         <div
           className="fixed inset-0 z-30 bg-transparent"
           onClick={() => {
@@ -1068,6 +1351,7 @@ export default function App() {
             setNotificationsOpen(false);
             setUserMenuOpen(false);
             setQuickActionsOpen(false);
+            setRoleMenuOpen(false);
           }}
         />
       )}
@@ -1310,6 +1594,61 @@ export default function App() {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Instant Role Persona Switcher (Demo / Testing) */}
+            <div className="relative">
+              <button
+                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs shadow-xs transition"
+                title="Switch Demo Persona (13 SRS Roles)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span className="hidden md:inline text-[11px] text-indigo-200">Role:</span>
+                <span className="font-bold truncate max-w-[110px] text-xs">{userRole}</span>
+                <ChevronDown className="w-3 h-3 text-indigo-200" />
+              </button>
+
+              {roleMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 p-2 z-50 text-xs space-y-1">
+                  <div className="p-2 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Switch Demo Role
+                      </p>
+                      <p className="text-[10px] text-slate-500">13 SRS Personas with instant RBAC access</p>
+                    </div>
+                    <button onClick={() => setRoleMenuOpen(false)} className="text-slate-400 hover:text-slate-600">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 pr-1">
+                    {DEMO_ACCOUNTS.map((acc) => {
+                      const isCurrent = (currentUser?.email === acc.email) || (userRole === acc.role);
+                      return (
+                        <button
+                          key={acc.role}
+                          onClick={() => {
+                            setRoleMenuOpen(false);
+                            instantDemoLogin(acc.email);
+                          }}
+                          className={`w-full text-left p-2 rounded-lg flex items-center justify-between transition ${
+                            isCurrent
+                              ? 'bg-sky-50 text-sky-800 font-semibold'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div>
+                            <p className="text-xs font-semibold">{acc.label}</p>
+                            <p className="text-[10px] font-mono text-slate-400">{acc.email}</p>
+                          </div>
+                          {isCurrent && <CheckCircle2 className="w-4 h-4 text-sky-600 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -3123,6 +3462,69 @@ export default function App() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: STUDENT SUCCESS PORTAL (360° SELF-SERVICE) */}
+        {/* ========================================================================= */}
+        {activeTab === 'student-portal' && (
+          <StudentPortal token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: PARENT / GUARDIAN PORTAL (RESTRICTED WARD VIEW) */}
+        {/* ========================================================================= */}
+        {activeTab === 'parent-portal' && (
+          <ParentPortal token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: PROCTOR COORDINATOR (ALLOCATION & CASELOAD BALANCING) */}
+        {/* ========================================================================= */}
+        {activeTab === 'coordinator' && (
+          <ProctorCoordinatorPanel token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: PLACEMENT & CAREER READINESS */}
+        {/* ========================================================================= */}
+        {activeTab === 'placement' && (
+          <PlacementPanel token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: IQAC & ACCREDITATION (NAAC 2.3.3 / NBA 9) */}
+        {/* ========================================================================= */}
+        {activeTab === 'iqac-accreditation' && (
+          <IqacPanel token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: SUPER ADMIN MULTI-TENANT SAAS CONSOLE */}
+        {/* ========================================================================= */}
+        {activeTab === 'tenants' && (
+          <SuperAdminTenantsPanel
+            token={token!}
+            apiBase={API_BASE}
+            onSelectTenant={(institutionId) => {
+              setManagedInstitutionId(institutionId);
+              setActiveTab('users');
+            }}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: UNIVERSITY ADMIN CONSOLE (VTU AFFILIATED COLLEGES) */}
+        {/* ========================================================================= */}
+        {activeTab === 'university' && (
+          <UniversityAdminPanel token={token!} apiBase={API_BASE} />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: EXECUTIVE LEADERSHIP COCKPIT (PRINCIPAL / DEAN / HOD) */}
+        {/* ========================================================================= */}
+        {activeTab === 'executive' && (
+          <LeadershipDashboard token={token!} apiBase={API_BASE} userRole={userRole} />
         )}
       </main>
 

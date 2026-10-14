@@ -1,6 +1,11 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
+import { query } from './config/db.js';
+import { securityHeadersMiddleware } from './middlewares/security.middleware.js';
+import { apiLimiter, authLimiter, importExportLimiter } from './middlewares/rateLimit.middleware.js';
+import { cacheService } from './services/cache.service.js';
 
 // Import module routes
 import authRoutes from './modules/auth/auth.routes.js';
@@ -22,30 +27,93 @@ dotenv.config();
 export const createApp = (): Express => {
   const app = express();
 
-  // Global Middlewares
-  const allowedOrigins = (process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean);
-  app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-      ? (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-          return callback(new Error('Origin is not allowed by CORS.'));
-        }
-      : true,
-    credentials: true,
-  }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Trust first proxy (Render, AWS ALB, Cloudflare, NGINX)
+  app.set('trust proxy', 1);
 
-  // Health check
-  app.get('/health', (req: Request, res: Response) => {
+  // 1. Production Security Headers & Traceability
+  app.use(securityHeadersMiddleware);
+
+  // 2. High-Performance Gzip/Brotli Compression
+  app.use(compression());
+
+  // 3. CORS Configuration
+  const allowedOrigins = (process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+  app.use(
+    cors({
+      origin:
+        process.env.NODE_ENV === 'production'
+          ? (origin, callback) => {
+              if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+              return callback(new Error('Origin is not allowed by CORS.'));
+            }
+          : true,
+      credentials: true,
+    })
+  );
+
+  // 4. Request Body Parsers with safe payload limits
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // 5. Health Check (Liveness Probe)
+  app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'healthy',
-      platform: 'Mentor360 SaaS Platform API',
+      platform: 'Mentor360 Multi-Tenant Educational SaaS API',
+      version: '1.0.0',
+      uptime: process.uptime(),
       timestamp: new Date().toISOString(),
     });
   });
 
-  // API V1 Routes (Model / Module-wise)
+  // 6. Deep Readiness Probe (Verifies PostgreSQL connection & latency)
+  app.get('/ready', async (_req: Request, res: Response) => {
+    const start = Date.now();
+    try {
+      await query('SELECT 1');
+      const latencyMs = Date.now() - start;
+      const memUsage = process.memoryUsage();
+
+      res.json({
+        status: 'ready',
+        database: 'connected',
+        dbLatencyMs: latencyMs,
+        cacheStats: cacheService.stats(),
+        memory: {
+          heapUsedMb: Math.round(memUsage.heapUsed / 1024 / 1024),
+          heapTotalMb: Math.round(memUsage.heapTotal / 1024 / 1024),
+          rssMb: Math.round(memUsage.rss / 1024 / 1024),
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(503).json({
+        status: 'unready',
+        database: 'disconnected',
+        error: err.message || 'Database ping failed',
+      });
+    }
+  });
+
+  // 7. Cache Management Endpoints (Admin inspection & manual purge)
+  app.get('/api/cache/stats', (_req: Request, res: Response) => {
+    res.json(cacheService.stats());
+  });
+
+  app.post('/api/cache/flush', (_req: Request, res: Response) => {
+    cacheService.flush();
+    res.json({ message: 'Server cache successfully cleared.' });
+  });
+
+  // 8. Rate Limiting Protection
+  // Strict limiter for authentication
+  app.use('/api/auth/login', authLimiter);
+  // Heavy payload / import limiter
+  app.use('/api/reports/import-preview', importExportLimiter);
+  // Global API rate limit
+  app.use('/api', apiLimiter);
+
+  // 9. API V1 Routes (Model / Module-wise)
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/institution', institutionRoutes);
@@ -60,16 +128,18 @@ export const createApp = (): Express => {
   app.use('/api/reports', reportRoutes);
   app.use('/api/files', fileRoutes);
 
-  // 404 Handler
+  // 10. 404 Handler
   app.use((req: Request, res: Response) => {
     res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
   });
 
-  // Global Error Handler
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  // 11. Production Error Handler (Safe error messages without leaking stack traces)
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Unhandled API Error:', err);
+    const isProd = process.env.NODE_ENV === 'production';
     res.status(err.status || 500).json({
       error: err.message || 'Internal Server Error',
+      ...(isProd ? {} : { stack: err.stack }),
     });
   });
 

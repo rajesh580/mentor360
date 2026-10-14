@@ -5,6 +5,7 @@ import { authenticate } from '../../middlewares/auth.middleware.js';
 import { tenantMiddleware, requireRoles } from '../../middlewares/tenant.middleware.js';
 import { logAudit } from '../../middlewares/audit.middleware.js';
 import { saveFileToDatabase } from '../../services/storage.service.js';
+import { cacheService } from '../../services/cache.service.js';
 
 const router = Router();
 const upload = multer({
@@ -13,6 +14,212 @@ const upload = multer({
 });
 
 router.use(authenticate, tenantMiddleware);
+
+// GET /api/students/me/dashboard - Student Self-Service Success Portal
+router.get('/me/dashboard', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const institutionId = req.tenantId;
+
+    // Find student record associated with authenticated user
+    const studentLookup = await query(
+      `SELECT s.*, d.name as department_name, d.code as department_code,
+              p.name as programme_name, b.name as batch_name
+       FROM students s
+       JOIN departments d ON s.department_id = d.id
+       JOIN programmes p ON s.programme_id = p.id
+       LEFT JOIN batches b ON s.batch_id = b.id
+       WHERE (s.user_id = $1 OR s.email = $2) AND s.institution_id = $3
+       LIMIT 1`,
+      [userId, req.user!.email, institutionId]
+    );
+
+    if (studentLookup.rows.length === 0) {
+      return res.status(404).json({ error: 'No student profile linked to this user account.' });
+    }
+
+    const student = studentLookup.rows[0];
+    const studentId = student.id;
+
+    // 1. Assigned Mentor / Proctor details
+    const mentorRes = await query(
+      `SELECT pa.*, f.employee_id, f.designation, f.specialization,
+              u.full_name as mentor_name, u.email as mentor_email, u.phone as mentor_phone
+       FROM proctor_allocations pa
+       JOIN faculty f ON pa.faculty_id = f.id
+       JOIN users u ON f.user_id = u.id
+       WHERE pa.student_id = $1 AND pa.status = 'ACTIVE'`,
+      [studentId]
+    );
+
+    // 2. Marks (IA1, IA2, Avg IA, External VTU)
+    const marksRes = await query(
+      `SELECT mr.*, sub.code as subject_code, sub.name as subject_name, sub.credits
+       FROM mark_records mr
+       JOIN subjects sub ON mr.subject_id = sub.id
+       WHERE mr.student_id = $1 AND mr.semester_number = $2
+       ORDER BY sub.code ASC`,
+      [studentId, student.current_semester]
+    );
+
+    // 3. Attendance
+    const attendanceRes = await query(
+      `SELECT ar.*, sub.code as subject_code, sub.name as subject_name
+       FROM attendance_records ar
+       JOIN subjects sub ON ar.subject_id = sub.id
+       WHERE ar.student_id = $1 AND ar.semester_number = $2
+       ORDER BY sub.code ASC`,
+      [studentId, student.current_semester]
+    );
+
+    // 4. Result summaries (SGPA/CGPA)
+    const summaryRes = await query(
+      `SELECT * FROM result_summaries WHERE student_id = $1 ORDER BY semester_number DESC`,
+      [studentId]
+    );
+
+    // 5. Mentoring meetings
+    const meetingsRes = await query(
+      `SELECT mm.id, mm.title, mm.meeting_type, mm.scheduled_at, mm.venue, mm.status,
+              mp.attendance_status, mp.discussion_notes, mp.identified_challenges, mp.student_feedback,
+              u.full_name as mentor_name
+       FROM meeting_participants mp
+       JOIN mentoring_meetings mm ON mp.meeting_id = mm.id
+       JOIN faculty f ON mm.faculty_id = f.id
+       JOIN users u ON f.user_id = u.id
+       WHERE mp.student_id = $1
+       ORDER BY mm.scheduled_at DESC`,
+      [studentId]
+    );
+
+    // 6. Action plans / Interventions
+    const issuesRes = await query(
+      `SELECT si.id, si.category, si.severity, si.title, si.description, si.status,
+              ap.id as action_plan_id, ap.title as action_title, ap.objective, ap.target_date, ap.status as action_status
+       FROM student_issues si
+       LEFT JOIN action_plans ap ON si.id = ap.issue_id
+       WHERE si.student_id = $1
+       ORDER BY si.created_at DESC`,
+      [studentId]
+    );
+
+    // 7. Goals, Skills, Certificates, Internships
+    const [goalsRes, certsRes, skillsRes, internRes] = await Promise.all([
+      query(`SELECT * FROM student_goals WHERE student_id = $1 ORDER BY created_at DESC`, [studentId]),
+      query(`SELECT * FROM certificates WHERE student_id = $1 ORDER BY issue_date DESC`, [studentId]),
+      query(
+        `SELECT sk.name, sk.category, ss.proficiency
+         FROM student_skills ss
+         JOIN skills sk ON ss.skill_id = sk.id
+         WHERE ss.student_id = $1`,
+        [studentId]
+      ),
+      query(`SELECT * FROM internships WHERE student_id = $1 ORDER BY start_date DESC`, [studentId]),
+    ]);
+
+    // 8. Calculate attendance stats
+    let totalClassesHeld = 0;
+    let totalClassesAttended = 0;
+    let hasShortage = false;
+
+    attendanceRes.rows.forEach((r: any) => {
+      totalClassesHeld += Number(r.classes_held || 0);
+      totalClassesAttended += Number(r.classes_attended || 0);
+      if (r.is_shortage) hasShortage = true;
+    });
+
+    const overallPercentage = totalClassesHeld > 0 ? Number(((totalClassesAttended / totalClassesHeld) * 100).toFixed(1)) : 100;
+
+    res.json({
+      student,
+      currentMentor: mentorRes.rows[0] || null,
+      marks: marksRes.rows,
+      attendance: attendanceRes.rows,
+      overallAttendance: {
+        classesHeld: totalClassesHeld,
+        classesAttended: totalClassesAttended,
+        percentage: overallPercentage,
+        hasShortage: overallPercentage < 75 || hasShortage,
+      },
+      latestSummary: summaryRes.rows[0] || null,
+      meetings: meetingsRes.rows,
+      interventions: issuesRes.rows,
+      development: {
+        goals: goalsRes.rows,
+        certificates: certsRes.rows,
+        skills: skillsRes.rows,
+        internships: internRes.rows,
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching student portal dashboard:', err);
+    res.status(500).json({ error: 'Failed to retrieve student portal data.' });
+  }
+});
+
+// POST /api/students/me/request-meeting - Student requests a 1-on-1 meeting with mentor
+router.post('/me/request-meeting', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const institutionId = req.tenantId;
+    const { reason, preferredDate } = req.body;
+
+    const studentLookup = await query(
+      `SELECT s.id, s.full_name, s.usn, pa.faculty_id, f.user_id as mentor_user_id
+       FROM students s
+       JOIN proctor_allocations pa ON s.id = pa.student_id AND pa.status = 'ACTIVE'
+       JOIN faculty f ON pa.faculty_id = f.id
+       WHERE (s.user_id = $1 OR s.email = $2) AND s.institution_id = $3
+       LIMIT 1`,
+      [userId, req.user!.email, institutionId]
+    );
+
+    if (studentLookup.rows.length === 0) {
+      return res.status(400).json({ error: 'No active proctor assigned to your student profile.' });
+    }
+
+    const { id: studentId, full_name, usn, faculty_id, mentor_user_id } = studentLookup.rows[0];
+
+    // Create a scheduled meeting record marked as student-initiated
+    const meetingRes = await query(
+      `INSERT INTO mentoring_meetings (
+         institution_id, faculty_id, title, meeting_type, scheduled_at, venue, status, general_remarks
+       )
+       VALUES ($1, $2, $3, 'INDIVIDUAL', $4, 'Proctor Cabin', 'SCHEDULED', $5)
+       RETURNING id`,
+      [
+        institutionId,
+        faculty_id,
+        `Mentoring Request from ${full_name} (${usn})`,
+        preferredDate || new Date(Date.now() + 24 * 3600 * 1000),
+        `Student Reason: ${reason || 'Academic & general mentoring discussion requested by mentee.'}`,
+      ]
+    );
+
+    await query(
+      `INSERT INTO meeting_participants (meeting_id, student_id, attendance_status, discussion_notes)
+       VALUES ($1, $2, 'PENDING', $3)`,
+      [meetingRes.rows[0].id, studentId, `Requested on: ${new Date().toISOString()}`]
+    );
+
+    // Send notification to mentor
+    await query(
+      `INSERT INTO notifications (institution_id, user_id, title, message, type)
+       VALUES ($1, $2, 'New Mentoring Meeting Request', $3, 'MEETING')`,
+      [
+        institutionId,
+        mentor_user_id,
+        `Mentee ${full_name} (${usn}) has requested a mentoring meeting: "${reason || 'Discussion requested'}"`,
+      ]
+    );
+
+    cacheService.invalidateTags(['reports', 'meetings']);
+    res.status(201).json({ message: 'Mentoring meeting request submitted to your mentor successfully.' });
+  } catch (err) {
+    console.error('Error submitting meeting request:', err);
+    res.status(500).json({ error: 'Failed to submit meeting request.' });
+  }
+});
 
 // GET /api/students - List students with filter
 router.get('/', async (req: Request, res: Response) => {

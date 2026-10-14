@@ -5,14 +5,15 @@ import { query, getClient } from '../../config/db.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { tenantMiddleware, requireRoles } from '../../middlewares/tenant.middleware.js';
 import { saveFileToDatabase } from '../../services/storage.service.js';
+import { cacheMiddleware } from '../../services/cache.service.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(authenticate, tenantMiddleware);
 
-// GET /api/reports/dashboard-stats - High-level metrics for Admin/Proctors
-router.get('/dashboard-stats', async (req: Request, res: Response) => {
+// GET /api/reports/dashboard-stats - High-level metrics for Admin/Proctors with cache
+router.get('/dashboard-stats', cacheMiddleware(30, ['reports']), async (req: Request, res: Response) => {
   try {
     const institutionId = req.tenantId;
 
@@ -157,6 +158,128 @@ router.get('/export-accreditation', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error exporting accreditation summary:', err);
     res.status(500).json({ error: 'Failed to generate accreditation export.' });
+  }
+});
+
+// GET /api/reports/iqac-metrics - Accreditation (NAAC Criterion 2 / NBA Criterion 9) Analytics
+router.get('/iqac-metrics', cacheMiddleware(30, ['reports']), async (req: Request, res: Response) => {
+  try {
+    const institutionId = req.tenantId;
+
+    const [studentsRes, facultyRes, allocRes, meetingsRes, marksRes, remedialRes] = await Promise.all([
+      query(`SELECT COUNT(*) as count FROM students WHERE institution_id = $1`, [institutionId]),
+      query(`SELECT COUNT(*) as count FROM faculty WHERE institution_id = $1`, [institutionId]),
+      query(`SELECT COUNT(DISTINCT student_id) as count FROM proctor_allocations WHERE institution_id = $1 AND status = 'ACTIVE'`, [institutionId]),
+      query(`SELECT COUNT(*) as total_meetings, COUNT(DISTINCT student_id) as students_mentored FROM meeting_participants mp JOIN mentoring_meetings mm ON mp.meeting_id = mm.id WHERE mm.institution_id = $1 AND mp.attendance_status = 'PRESENT'`, [institutionId]),
+      query(
+        `SELECT s.id, s.usn, s.full_name, s.current_semester, d.code as department_code,
+                ROUND(AVG(mr.avg_ia_marks)::numeric, 2) as overall_avg_ia
+         FROM students s
+         JOIN departments d ON s.department_id = d.id
+         JOIN mark_records mr ON s.id = mr.student_id
+         WHERE s.institution_id = $1
+         GROUP BY s.id, s.usn, s.full_name, s.current_semester, d.code`,
+        [institutionId]
+      ),
+      query(
+        `SELECT ap.*, si.title as issue_title, si.category, s.usn, s.full_name as student_name
+         FROM action_plans ap
+         JOIN student_issues si ON ap.issue_id = si.id
+         JOIN students s ON si.student_id = s.id
+         WHERE si.institution_id = $1 AND ap.status IN ('PENDING', 'IN_PROGRESS')`,
+        [institutionId]
+      ),
+    ]);
+
+    const totalStudents = parseInt(studentsRes.rows[0].count) || 0;
+    const totalFaculty = parseInt(facultyRes.rows[0].count) || 0;
+    const allocatedStudents = parseInt(allocRes.rows[0].count) || 0;
+    const ratio = totalFaculty > 0 ? Number((totalStudents / totalFaculty).toFixed(1)) : 0;
+    const coveragePercent = totalStudents > 0 ? Math.round((allocatedStudents / totalStudents) * 100) : 0;
+
+    // Slow Learners: Overall Avg IA < 25 (out of 50)
+    const slowLearners = marksRes.rows.filter((m: any) => Number(m.overall_avg_ia) < 25.0);
+    // Advanced Learners: Overall Avg IA >= 40 (out of 50)
+    const advancedLearners = marksRes.rows.filter((m: any) => Number(m.overall_avg_ia) >= 40.0);
+
+    res.json({
+      ratio,
+      ratioFormatted: `1:${ratio}`,
+      ratioCompliant: ratio <= 20, // NAAC / NBA 1:20 guideline
+      totalStudents,
+      totalFaculty,
+      allocatedStudents,
+      coveragePercent,
+      meetingsConducted: parseInt(meetingsRes.rows[0].total_meetings) || 0,
+      studentsMentoredCount: parseInt(meetingsRes.rows[0].students_mentored) || 0,
+      slowLearnersCount: slowLearners.length,
+      slowLearners,
+      advancedLearnersCount: advancedLearners.length,
+      advancedLearners,
+      activeRemedialPlans: remedialRes.rows,
+    });
+  } catch (err) {
+    console.error('Failed to get IQAC metrics:', err);
+    res.status(500).json({ error: 'Failed to retrieve IQAC accreditation metrics.' });
+  }
+});
+
+// GET /api/reports/leadership-summary - Executive Dashboard for Principal, Dean & HODs
+router.get('/leadership-summary', cacheMiddleware(30, ['reports']), async (req: Request, res: Response) => {
+  try {
+    const institutionId = req.tenantId;
+
+    const [statsRes, deptRes] = await Promise.all([
+      query(
+        `SELECT
+           (SELECT COUNT(*) FROM students WHERE institution_id = $1) as total_students,
+           (SELECT COUNT(*) FROM faculty WHERE institution_id = $1) as total_faculty,
+           (SELECT COUNT(*) FROM attendance_records WHERE institution_id = $1 AND is_shortage = true) as shortage_count,
+           (SELECT COUNT(*) FROM student_issues WHERE institution_id = $1 AND status = 'OPEN') as open_issues,
+           (SELECT COUNT(*) FROM mentoring_meetings WHERE institution_id = $1 AND status = 'COMPLETED') as completed_meetings,
+           (SELECT COUNT(DISTINCT student_id) FROM proctor_allocations WHERE institution_id = $1 AND status = 'ACTIVE') as allocated_students`,
+        [institutionId]
+      ),
+      query(
+        `SELECT d.id, d.code, d.name,
+                COUNT(DISTINCT s.id) as student_count,
+                COUNT(DISTINCT f.id) as faculty_count,
+                ROUND(AVG(rs.sgpa)::numeric, 2) as avg_sgpa,
+                COUNT(DISTINCT CASE WHEN ar.is_shortage = true THEN s.id END) as shortage_students,
+                COUNT(DISTINCT CASE WHEN si.status = 'OPEN' THEN si.id END) as open_concerns,
+                COUNT(DISTINCT mm.id) as meetings_count
+         FROM departments d
+         LEFT JOIN students s ON d.id = s.department_id AND s.institution_id = $1
+         LEFT JOIN faculty f ON d.id = f.department_id AND f.institution_id = $1
+         LEFT JOIN result_summaries rs ON s.id = rs.student_id
+         LEFT JOIN attendance_records ar ON s.id = ar.student_id AND ar.is_shortage = true
+         LEFT JOIN student_issues si ON s.id = si.student_id AND si.status = 'OPEN'
+         LEFT JOIN mentoring_meetings mm ON f.id = mm.faculty_id AND mm.status = 'COMPLETED'
+         WHERE d.institution_id = $1
+         GROUP BY d.id, d.code, d.name
+         ORDER BY d.code ASC`,
+        [institutionId]
+      ),
+    ]);
+
+    const s = statsRes.rows[0];
+    const totalStudents = parseInt(s.total_students) || 0;
+    const allocated = parseInt(s.allocated_students) || 0;
+
+    res.json({
+      overview: {
+        totalStudents,
+        totalFaculty: parseInt(s.total_faculty) || 0,
+        coveragePercent: totalStudents > 0 ? Math.round((allocated / totalStudents) * 100) : 0,
+        shortageCount: parseInt(s.shortage_count) || 0,
+        openIssues: parseInt(s.open_issues) || 0,
+        completedMeetings: parseInt(s.completed_meetings) || 0,
+      },
+      departments: deptRes.rows,
+    });
+  } catch (err) {
+    console.error('Failed to get leadership summary:', err);
+    res.status(500).json({ error: 'Failed to retrieve leadership summary.' });
   }
 });
 

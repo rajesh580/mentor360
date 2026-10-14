@@ -39,11 +39,19 @@ export async function seedDatabase() {
     console.log('Inserting Institution SVIT...');
     const instRes = await client.query(
       `INSERT INTO institutions (code, name, slug, status, settings)
-       VALUES ('SVIT-BLR', 'Sai Vidya Institute of Technology', 'svit-bangalore', 'ACTIVE', '{"university": "VTU"}')
-       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
+       VALUES ('SVIT-BLR', 'Sai Vidya Institute of Technology', 'svit-bangalore', 'ACTIVE', '{"university": "VTU", "tier": "ENTERPRISE", "maxStudents": 2500}')
+       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, settings = EXCLUDED.settings
        RETURNING id`
     );
     const institutionId = instRes.rows[0].id;
+
+    // 2b. Secondary Institution for Multi-Tenant Demonstrations
+    console.log('Inserting Secondary Institution BMSIT for Multi-Tenant Showcase...');
+    await client.query(
+      `INSERT INTO institutions (code, name, slug, status, settings)
+       VALUES ('BMSIT-BLR', 'BMS Institute of Technology & Management', 'bmsit-bangalore', 'ACTIVE', '{"university": "VTU", "tier": "ENTERPRISE", "maxStudents": 3000}')
+       ON CONFLICT (code) DO NOTHING`
+    );
 
     // 3. Academic Year
     console.log('Inserting Academic Year...');
@@ -56,7 +64,7 @@ export async function seedDatabase() {
     );
     const academicYearId = ayRes.rows[0].id;
 
-    // 4. Department
+    // 4. Departments
     console.log('Inserting Departments...');
     const deptRes = await client.query(
       `INSERT INTO departments (institution_id, code, name)
@@ -66,6 +74,22 @@ export async function seedDatabase() {
       [institutionId]
     );
     const departmentId = deptRes.rows[0].id;
+
+    const eceDept = await client.query(
+      `INSERT INTO departments (institution_id, code, name)
+       VALUES ($1, 'ECE', 'Electronics & Communication Engineering')
+       ON CONFLICT (institution_id, code) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`,
+      [institutionId]
+    );
+
+    const iseDept = await client.query(
+      `INSERT INTO departments (institution_id, code, name)
+       VALUES ($1, 'ISE', 'Information Science & Engineering')
+       ON CONFLICT (institution_id, code) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`,
+      [institutionId]
+    );
 
     // 5. Programme
     console.log('Inserting Programme...');
@@ -98,13 +122,43 @@ export async function seedDatabase() {
       [hashedPassword]
     );
 
-    // Institution Admin / Principal
-    const instAdminRes = await client.query(
+    // University Admin User
+    await client.query(
       `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
-       VALUES ($1, 'principal@svit.edu.in', $2, 'Dr. H.S. Ramesh (Principal)', '9876543211', 'INSTITUTION_ADMIN', 'ACTIVE')
+       VALUES ($1, 'univ.admin@vtu.ac.in', $2, 'Dr. K. Balaveera Reddy (VTU Vice-Chancellor)', '9876543220', 'UNIVERSITY_ADMIN', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+      [institutionId, hashedPassword]
+    );
+
+    // Institution Admin
+    await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'admin@svit.edu.in', $2, 'SVIT Campus Administrator', '9876543221', 'INSTITUTION_ADMIN', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+      [institutionId, hashedPassword]
+    );
+
+    // Principal / Director
+    await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'principal@svit.edu.in', $2, 'Dr. H.S. Ramesh (Principal & Director)', '9876543211', 'PRINCIPAL', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+      [institutionId, hashedPassword]
+    );
+
+    // Dean Academics
+    const deanUser = await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'dean.academics@svit.edu.in', $2, 'Dr. C.B. Shivamurthy (Dean Academics)', '9876543222', 'DEAN', 'ACTIVE')
        ON CONFLICT (email) DO UPDATE SET password_hash = $2
        RETURNING id`,
       [institutionId, hashedPassword]
+    );
+    await client.query(
+      `INSERT INTO faculty (institution_id, user_id, department_id, employee_id, designation, specialization)
+       VALUES ($1, $2, $3, 'EMP-DEAN-001', 'Dean & Senior Professor', 'VLSI & Computer Architecture')
+       ON CONFLICT (institution_id, employee_id) DO NOTHING`,
+      [institutionId, deanUser.rows[0].id, departmentId]
     );
 
     // HOD User
@@ -113,6 +167,43 @@ export async function seedDatabase() {
        VALUES ($1, 'hod.cse@svit.edu.in', $2, 'Dr. K. Shantala (HOD CSE)', '9876543212', 'HOD', 'ACTIVE')
        ON CONFLICT (email) DO UPDATE SET password_hash = $2
        RETURNING id`,
+      [institutionId, hashedPassword]
+    );
+    await client.query(
+      `INSERT INTO faculty (institution_id, user_id, department_id, employee_id, designation, specialization)
+       VALUES ($1, $2, $3, 'EMP-HOD-001', 'Professor & HOD', 'Information Security & Data Science')
+       ON CONFLICT (institution_id, employee_id) DO NOTHING`,
+      [institutionId, hodRes.rows[0].id, departmentId]
+    );
+
+    // Proctor Coordinator
+    const coordUser = await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'proctor.coord@svit.edu.in', $2, 'Prof. Vinay Kumar (Chief Proctor Coordinator)', '9876543223', 'PROCTOR_COORDINATOR', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2
+       RETURNING id`,
+      [institutionId, hashedPassword]
+    );
+    await client.query(
+      `INSERT INTO faculty (institution_id, user_id, department_id, employee_id, designation, specialization)
+       VALUES ($1, $2, $3, 'EMP-COORD-001', 'Associate Professor & Proctor Head', 'System Software')
+       ON CONFLICT (institution_id, employee_id) DO NOTHING`,
+      [institutionId, coordUser.rows[0].id, departmentId]
+    );
+
+    // Placement Officer
+    await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'placement@svit.edu.in', $2, 'Prof. Rajeshwari S. (Head of Training & Placement)', '9876543224', 'PLACEMENT_OFFICER', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+      [institutionId, hashedPassword]
+    );
+
+    // IQAC / Accreditation Admin
+    await client.query(
+      `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
+       VALUES ($1, 'iqac@svit.edu.in', $2, 'Dr. Venkatesh M. (Director - IQAC Accreditation)', '9876543225', 'IQAC_ADMIN', 'ACTIVE')
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
       [institutionId, hashedPassword]
     );
 
@@ -153,7 +244,7 @@ export async function seedDatabase() {
     // Counsellor User
     await client.query(
       `INSERT INTO users (institution_id, email, password_hash, full_name, phone, role_code, status)
-       VALUES ($1, 'counsellor@svit.edu.in', $2, 'Dr. Meera Rao (Student Counsellor)', '9876543215', 'COUNSELLOR', 'ACTIVE')
+       VALUES ($1, 'counsellor@svit.edu.in', $2, 'Dr. Meera Rao (Chief Student Counsellor)', '9876543215', 'COUNSELLOR', 'ACTIVE')
        ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
       [institutionId, hashedPassword]
     );
@@ -264,6 +355,7 @@ export async function seedDatabase() {
       const guardianRes = await client.query(
         `INSERT INTO guardians (institution_id, user_id, name, relation, phone, email)
          VALUES ($1, $2, $3, 'Father', '9811122233', $4)
+         ON CONFLICT (user_id) DO UPDATE SET name = EXCLUDED.name, phone = EXCLUDED.phone
          RETURNING id`,
         [institutionId, gUser.rows[0].id, `${s.name}'s Guardian`, `parent.${s.usn.toLowerCase()}@example.com`]
       );
@@ -299,7 +391,7 @@ export async function seedDatabase() {
 
     // 10. Marks & Attendance for Aarav Sharma (studentIds[0]) & Sneha Patel (studentIds[1])
     console.log('Inserting Academic IA Marks & Attendance...');
-    // Aarav: High performer
+    // Aarav: High performer (Fast Learner)
     const aaravMarks = [
       { subIdx: 0, ia1: 44.0, ia2: 46.0, avg: 45.0, vtu: 88.0, grade: 'S', attH: 40, attA: 38 },
       { subIdx: 1, ia1: 42.0, ia2: 45.0, avg: 43.5, vtu: 82.0, grade: 'A', attH: 45, attA: 42 },
@@ -337,7 +429,7 @@ export async function seedDatabase() {
       );
     }
 
-    // Sneha: Student with Attendance Shortage & IA Concern (for demonstration of Risk & Intervention module)
+    // Sneha: Student with Attendance Shortage & IA Concern (Slow Learner / Risk Case)
     const snehaMarks = [
       { subIdx: 0, ia1: 24.0, ia2: 28.0, avg: 26.0, vtu: null, grade: null, attH: 40, attA: 26, isShort: true },
       { subIdx: 1, ia1: 20.0, ia2: 22.0, avg: 21.0, vtu: null, grade: null, attH: 45, attA: 29, isShort: true },
@@ -374,7 +466,22 @@ export async function seedDatabase() {
       );
     }
 
-    // 11. Mentoring Meeting
+    // Result Summaries
+    await client.query(
+      `INSERT INTO result_summaries (institution_id, student_id, semester_number, sgpa, cgpa, active_backlogs, academic_standing)
+       VALUES ($1, $2, 5, 8.85, 8.72, 0, 'GOOD')
+       ON CONFLICT (student_id, semester_number) DO UPDATE SET sgpa = 8.85, cgpa = 8.72`,
+      [institutionId, studentIds[0]]
+    );
+
+    await client.query(
+      `INSERT INTO result_summaries (institution_id, student_id, semester_number, sgpa, cgpa, active_backlogs, academic_standing)
+       VALUES ($1, $2, 5, 6.20, 6.45, 1, 'PROBATION')
+       ON CONFLICT (student_id, semester_number) DO UPDATE SET sgpa = 6.20, cgpa = 6.45`,
+      [institutionId, studentIds[1]]
+    );
+
+    // 11. Mentoring Meetings
     console.log('Inserting Mentoring Meetings...');
     const meetingRes = await client.query(
       `INSERT INTO mentoring_meetings (
@@ -422,8 +529,32 @@ export async function seedDatabase() {
       [planRes.rows[0].id, proctor1User.rows[0].id]
     );
 
-    // 13. Student Development & Goals
-    console.log('Inserting Student Goals & Certifications...');
+    // 13. Student Skills, Development, Goals & Internships
+    console.log('Inserting Student Skills, Certifications & Internships...');
+    const skillsList = [
+      { name: 'Python Programming', category: 'TECHNICAL' },
+      { name: 'Cloud Architecture (AWS)', category: 'TECHNICAL' },
+      { name: 'Full-Stack Web Dev', category: 'TECHNICAL' },
+      { name: 'Communication & Leadership', category: 'SOFT_SKILL' },
+    ];
+
+    for (const sk of skillsList) {
+      const skRes = await client.query(
+        `INSERT INTO skills (institution_id, name, category)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (institution_id, name) DO UPDATE SET category = EXCLUDED.category
+         RETURNING id`,
+        [institutionId, sk.name, sk.category]
+      );
+
+      await client.query(
+        `INSERT INTO student_skills (student_id, skill_id, proficiency)
+         VALUES ($1, $2, 'ADVANCED')
+         ON CONFLICT (student_id, skill_id) DO NOTHING`,
+        [studentIds[0], skRes.rows[0].id]
+      );
+    }
+
     await client.query(
       `INSERT INTO student_goals (student_id, title, target_date, status, progress_percentage)
        VALUES ($1, 'Complete AWS Certified Solutions Architect Associate', CURRENT_DATE + INTERVAL '60 days', 'IN_PROGRESS', 65)`,
@@ -436,8 +567,34 @@ export async function seedDatabase() {
       [studentIds[0]]
     );
 
+    await client.query(
+      `INSERT INTO internships (student_id, company_name, role, start_date, end_date, stipend_amount, status)
+       VALUES ($1, 'Bosch Global Software Technologies', 'Software Engineering Intern', CURRENT_DATE - INTERVAL '6 months', CURRENT_DATE - INTERVAL '3 months', 25000, 'COMPLETED')`,
+      [studentIds[0]]
+    );
+
+    // 14. Parent Communications
+    console.log('Inserting Parent Communications...');
+    await client.query(
+      `INSERT INTO parent_communications (institution_id, student_id, guardian_id, initiated_by, channel, subject, message, delivery_status)
+       SELECT $1, s.id, sg.guardian_id, $2, 'SMS', 'Attendance Shortage Alert - VTU Regulations', 
+              'Dear Parent, Your ward Sneha Patel has attendance < 75% in CSE 5th Sem. Remedial sessions scheduled.', 'DELIVERED'
+       FROM students s
+       JOIN student_guardians sg ON s.id = sg.student_id
+       WHERE s.id = $3 LIMIT 1`,
+      [institutionId, proctor1User.rows[0].id, studentIds[1]]
+    );
+
+    // 15. Reassignment History
+    console.log('Inserting Proctor Reassignment History...');
+    await client.query(
+      `INSERT INTO proctor_reassignments (institution_id, student_id, previous_faculty_id, new_faculty_id, academic_year_id, reassignment_date, reason, approved_by)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE - INTERVAL '30 days', 'Faculty sabbatical transfer approved by HOD', $6)`,
+      [institutionId, studentIds[2], faculty1Id, faculty2Id, academicYearId, hodRes.rows[0].id]
+    );
+
     await client.query('COMMIT');
-    console.log('🎉 Seeding successfully completed! SVIT demo environment ready.');
+    console.log('🎉 Seeding successfully completed! SVIT demo environment ready for all 13 roles.');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Seeding failed:', err);

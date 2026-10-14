@@ -185,6 +185,114 @@ router.post(
   }
 );
 
+// GET /api/communication/parent-portal - Restricted Parent Portal View
+router.get('/parent-portal', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const userEmail = req.user!.email;
+    const institutionId = req.tenantId;
+
+    // 1. Find guardian record for authenticated user
+    const guardianRes = await query(
+      `SELECT g.* FROM guardians g
+       WHERE (g.user_id = $1 OR g.email = $2) AND g.institution_id = $3
+       LIMIT 1`,
+      [userId, userEmail, institutionId]
+    );
+
+    if (guardianRes.rows.length === 0) {
+      return res.status(404).json({ error: 'No parent/guardian profile linked to your user account.' });
+    }
+
+    const guardian = guardianRes.rows[0];
+
+    // 2. Fetch all verified students linked to this guardian
+    const linkedStudentsRes = await query(
+      `SELECT s.*, d.name as department_name, d.code as department_code,
+              sg.is_primary, sg.verified,
+              u_f.full_name as mentor_name, u_f.email as mentor_email, u_f.phone as mentor_phone,
+              f.designation as mentor_designation, f.employee_id as mentor_emp_id
+       FROM student_guardians sg
+       JOIN students s ON sg.student_id = s.id
+       JOIN departments d ON s.department_id = d.id
+       LEFT JOIN proctor_allocations pa ON s.id = pa.student_id AND pa.status = 'ACTIVE'
+       LEFT JOIN faculty f ON pa.faculty_id = f.id
+       LEFT JOIN users u_f ON f.user_id = u_f.id
+       WHERE sg.guardian_id = $1 AND sg.verified = true`,
+      [guardian.id]
+    );
+
+    const studentsWithDetails = await Promise.all(
+      linkedStudentsRes.rows.map(async (stu) => {
+        // Attendance
+        const attRes = await query(
+          `SELECT ar.*, sub.code as subject_code, sub.name as subject_name
+           FROM attendance_records ar
+           JOIN subjects sub ON ar.subject_id = sub.id
+           WHERE ar.student_id = $1 AND ar.semester_number = $2
+           ORDER BY sub.code ASC`,
+          [stu.id, stu.current_semester]
+        );
+
+        let totalHeld = 0;
+        let totalAtt = 0;
+        let hasShortage = false;
+        attRes.rows.forEach((r) => {
+          totalHeld += Number(r.classes_held || 0);
+          totalAtt += Number(r.classes_attended || 0);
+          if (r.is_shortage) hasShortage = true;
+        });
+
+        const overallAttPercentage = totalHeld > 0 ? Number(((totalAtt / totalHeld) * 100).toFixed(1)) : 100;
+
+        // Marks
+        const marksRes = await query(
+          `SELECT mr.*, sub.code as subject_code, sub.name as subject_name
+           FROM mark_records mr
+           JOIN subjects sub ON mr.subject_id = sub.id
+           WHERE mr.student_id = $1 AND mr.semester_number = $2
+           ORDER BY sub.code ASC`,
+          [stu.id, stu.current_semester]
+        );
+
+        // Result Summary
+        const summaryRes = await query(
+          `SELECT * FROM result_summaries WHERE student_id = $1 ORDER BY semester_number DESC LIMIT 1`,
+          [stu.id]
+        );
+
+        // Communications sent to guardian regarding this student
+        const commsRes = await query(
+          `SELECT * FROM parent_communications WHERE student_id = $1 AND guardian_id = $2 ORDER BY sent_at DESC LIMIT 10`,
+          [stu.id, guardian.id]
+        );
+
+        return {
+          student: stu,
+          attendance: attRes.rows,
+          overallAttendance: {
+            classesHeld: totalHeld,
+            classesAttended: totalAtt,
+            percentage: overallAttPercentage,
+            hasShortage: overallAttPercentage < 75 || hasShortage,
+          },
+          marks: marksRes.rows,
+          latestSummary: summaryRes.rows[0] || null,
+          communications: commsRes.rows,
+        };
+      })
+    );
+
+    res.json({
+      guardian,
+      linkedStudents: studentsWithDetails,
+    });
+  } catch (err) {
+    console.error('Failed to get parent portal data:', err);
+    res.status(500).json({ error: 'Failed to retrieve parent portal data.' });
+  }
+});
+
 // GET /api/communication/notifications - Get current user notifications
 router.get('/notifications', async (req: Request, res: Response) => {
   try {
@@ -196,6 +304,30 @@ router.get('/notifications', async (req: Request, res: Response) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to retrieve notifications.' });
+  }
+});
+
+// PATCH /api/communication/notifications/:id/read - Mark notification as read
+router.patch('/notifications/:id/read', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    await query(`UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2`, [id, userId]);
+    res.json({ message: 'Notification marked as read.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update notification.' });
+  }
+});
+
+// POST /api/communication/notifications/read-all - Mark all as read
+router.post('/notifications/read-all', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    await query(`UPDATE notifications SET is_read = true WHERE user_id = $1`, [userId]);
+    res.json({ message: 'All notifications marked as read.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update notifications.' });
   }
 });
 
