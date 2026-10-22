@@ -304,8 +304,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-
   const selectDefaultTabForRole = (role: string) => {
     if (role === 'STUDENT') setActiveTab('student-portal');
     else if (role === 'PARENT') setActiveTab('parent-portal');
@@ -1343,7 +1341,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
       {/* Backdrop overlay dismisser for open popovers */}
-      {(globalSearchFocused || notificationsOpen || userMenuOpen || quickActionsOpen || roleMenuOpen) && (
+      {(globalSearchFocused || notificationsOpen || userMenuOpen || quickActionsOpen) && (
         <div
           className="fixed inset-0 z-30 bg-transparent"
           onClick={() => {
@@ -1351,7 +1349,6 @@ export default function App() {
             setNotificationsOpen(false);
             setUserMenuOpen(false);
             setQuickActionsOpen(false);
-            setRoleMenuOpen(false);
           }}
         />
       )}
@@ -1594,61 +1591,6 @@ export default function App() {
                         </div>
                       ))
                     )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Instant Role Persona Switcher (Demo / Testing) */}
-            <div className="relative">
-              <button
-                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs shadow-xs transition"
-                title="Switch Demo Persona (13 SRS Roles)"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span className="hidden md:inline text-[11px] text-indigo-200">Role:</span>
-                <span className="font-bold truncate max-w-[110px] text-xs">{userRole}</span>
-                <ChevronDown className="w-3 h-3 text-indigo-200" />
-              </button>
-
-              {roleMenuOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 p-2 z-50 text-xs space-y-1">
-                  <div className="p-2 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-900 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Switch Demo Role
-                      </p>
-                      <p className="text-[10px] text-slate-500">13 SRS Personas with instant RBAC access</p>
-                    </div>
-                    <button onClick={() => setRoleMenuOpen(false)} className="text-slate-400 hover:text-slate-600">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 pr-1">
-                    {DEMO_ACCOUNTS.map((acc) => {
-                      const isCurrent = (currentUser?.email === acc.email) || (userRole === acc.role);
-                      return (
-                        <button
-                          key={acc.role}
-                          onClick={() => {
-                            setRoleMenuOpen(false);
-                            instantDemoLogin(acc.email);
-                          }}
-                          className={`w-full text-left p-2 rounded-lg flex items-center justify-between transition ${
-                            isCurrent
-                              ? 'bg-sky-50 text-sky-800 font-semibold'
-                              : 'hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div>
-                            <p className="text-xs font-semibold">{acc.label}</p>
-                            <p className="text-[10px] font-mono text-slate-400">{acc.email}</p>
-                          </div>
-                          {isCurrent && <CheckCircle2 className="w-4 h-4 text-sky-600 flex-shrink-0" />}
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               )}
